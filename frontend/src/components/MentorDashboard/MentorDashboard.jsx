@@ -8,6 +8,7 @@ import {
   Sparkles,
   Play,
   ArrowRight,
+  ArrowLeft,
   Plus,
   Users,
   CheckCircle2,
@@ -55,11 +56,13 @@ export default function MentorDashboard() {
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [selectedGroupForStudent, setSelectedGroupForStudent] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [activeCourseLesson, setActiveCourseLesson] = useState(null);
 
   // New Course Form State
   const [newCourseForm, setNewCourseForm] = useState({
     title: "",
-    domain: "",
+    domain_name: "",
     difficulty: "INTERMEDIATE",
     description: "",
   });
@@ -114,6 +117,10 @@ export default function MentorDashboard() {
         if (list.length > 0 && !newLessonForm.course_id) {
           setNewLessonForm((prev) => ({ ...prev, course_id: list[0].id }));
         }
+        setSelectedCourse((prev) => {
+          if (!prev) return null;
+          return list.find((c) => c.id === prev.id) || prev;
+        });
       }
 
       if (lessonsRes.status === "fulfilled" && lessonsRes.value.data) {
@@ -135,8 +142,11 @@ export default function MentorDashboard() {
           ? domainsRes.value.data
           : domainsRes.value.data?.results || [];
         setDomains(list);
-        if (list.length > 0 && !newCourseForm.domain) {
-          setNewCourseForm((prev) => ({ ...prev, domain: list[0].id }));
+        if (list.length > 0) {
+          setNewCourseForm((prev) => ({
+            ...prev,
+            domain_name: prev.domain_name || list[0].name,
+          }));
         }
       }
 
@@ -157,28 +167,36 @@ export default function MentorDashboard() {
   // 1. Handle Create Course
   async function handleCreateCourse(e) {
     e.preventDefault();
-    if (!newCourseForm.title) return;
+    if (!newCourseForm.title.trim()) return;
+    if (!newCourseForm.domain_name.trim()) {
+      alert("Iltimos, fanni kiriting yoki tanlang.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await api.post("curriculum/courses/", {
-        title: newCourseForm.title,
-        domain: newCourseForm.domain || (domains[0] ? domains[0].id : undefined),
+        title: newCourseForm.title.trim(),
+        domain_name: newCourseForm.domain_name.trim(),
         difficulty: newCourseForm.difficulty,
-        description: newCourseForm.description,
+        description: newCourseForm.description.trim(),
       });
 
-      triggerToast(`"${newCourseForm.title}" kursi muvaffaqiyatli yaratildi!`);
+      triggerToast(`"${newCourseForm.title}" kursi muvaffaqiyatli yaratildi va barcha talabalar uchun e'lon qilindi!`);
       setShowCreateCourseModal(false);
       setNewCourseForm({
         title: "",
-        domain: domains[0]?.id || "",
+        domain_name: domains[0]?.name || "",
         difficulty: "INTERMEDIATE",
         description: "",
       });
       await fetchMentorData();
     } catch (err) {
       console.error("Create course error:", err);
-      alert("Kurs yaratishda xatolik yuz berdi. Iltimos qaytadan urining.");
+      const msg =
+        err.response?.data?.error ||
+        err.response?.data?.detail ||
+        "Kurs yaratishda xatolik yuz berdi. Iltimos qaytadan urining.";
+      alert(typeof msg === "string" ? msg : JSON.stringify(msg));
     } finally {
       setSubmitting(false);
     }
@@ -383,7 +401,10 @@ export default function MentorDashboard() {
               Mentor Kabineti
             </button>
             <button
-              onClick={() => setActiveTab("courses")}
+              onClick={() => {
+                setActiveTab("courses");
+                setSelectedCourse(null);
+              }}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                 activeTab === "courses"
                   ? "bg-[#967b4f] text-white shadow-sm"
@@ -659,8 +680,234 @@ export default function MentorDashboard() {
           </div>
         )}
 
-        {/* ===================== VIEW 2: MY COURSES ===================== */}
-        {activeTab === "courses" && (
+        {/* ===================== VIEW 2.1: SELECTED COURSE DETAIL & LESSONS ===================== */}
+        {activeTab === "courses" && selectedCourse && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Top Navigation & Actions */}
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setSelectedCourse(null)}
+                className="inline-flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--gold)] transition-colors p-1.5 rounded-xl hover:bg-[var(--bg-void)] border border-transparent hover:border-[var(--border-glass)]"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Barcha kurslarimga qaytish</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setNewLessonForm((prev) => ({
+                    ...prev,
+                    course_id: selectedCourse.id,
+                  }));
+                  setShowCreateLessonModal(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-[var(--gold)] text-white font-bold text-xs shadow-md hover:brightness-105 flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Ushbu Kursga Dars Qo'shish</span>
+              </button>
+            </div>
+
+            {/* Course Header Banner */}
+            <div className="lux-card !p-6 sm:!p-8 rounded-3xl bg-[var(--bg-panel)] border border-[var(--border-glass)] shadow-lg space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[var(--gold)]/15 text-[var(--gold)] border border-[var(--gold)]/20">
+                    {selectedCourse.domain_name || "Akademik Fan"}
+                  </span>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-500/10 px-2.5 py-0.5 rounded-md">
+                    Holati: Faol (Ommaviy)
+                  </span>
+                </div>
+                <span className="text-xs font-bold uppercase text-[var(--gold)]">
+                  Daraja: {selectedCourse.difficulty || "O'RTA"}
+                </span>
+              </div>
+
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-serif font-black text-[var(--text-primary)] leading-tight">
+                  {selectedCourse.title}
+                </h1>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-2 leading-relaxed max-w-4xl">
+                  {selectedCourse.description || "Ushbu kurs doirasida mavzuning fundamental nazariyasi va amaliy tahlili o'rganiladi."}
+                </p>
+              </div>
+
+              {/* Course Meta Info */}
+              <div className="pt-4 border-t border-[var(--border-glass)] flex flex-wrap items-center justify-between gap-4 text-xs">
+                <div className="flex items-center gap-4 text-[var(--text-muted)]">
+                  <span className="flex items-center gap-1.5 font-semibold text-[var(--text-primary)]">
+                    <User className="w-4 h-4 text-[var(--gold)]" />
+                    {selectedCourse.instructor_name || currentUser?.first_name || "Siz"}
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-[var(--gold)]" />
+                    {((lessons.filter((l) => l.course === selectedCourse.id || l.course_id === selectedCourse.id || l.course_title === selectedCourse.title).length) || (selectedCourse.lessons || []).length)} ta dars
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                    {selectedCourse.simulations_count || 1} ta AI Keys
+                  </span>
+                </div>
+
+                <Link
+                  to={`/simulation?courseId=${selectedCourse.id}${selectedCourse.simulation_slug ? `&caseId=${selectedCourse.simulation_slug}` : ""}`}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 hover:bg-amber-500/25 text-xs font-bold transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#967b4f]" />
+                  <span>AI Simulyatsiyasini Ko'rish</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Course Lessons Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-serif font-bold text-[var(--text-primary)]">
+                    Ushbu Kurs Darsliklari va Materiallari
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Talabalar uchun yuklangan nazariy darslar, tushuntirishlar va laboratoriya materiallari.
+                  </p>
+                </div>
+              </div>
+
+              {(() => {
+                const courseSpecificLessons = lessons.filter(
+                  (l) => l.course === selectedCourse.id || l.course_id === selectedCourse.id || l.course_title === selectedCourse.title
+                );
+                const displayLessons = courseSpecificLessons.length > 0 
+                  ? courseSpecificLessons 
+                  : (Array.isArray(selectedCourse.lessons) ? selectedCourse.lessons : []);
+
+                if (displayLessons.length === 0) {
+                  return (
+                    <div className="text-center py-14 lux-card rounded-3xl border border-[var(--border-glass)] bg-[var(--bg-panel)] shadow-sm">
+                      <BookOpen className="w-10 h-10 text-[var(--gold)] mx-auto mb-3 opacity-60" />
+                      <h4 className="font-serif font-bold text-base text-[var(--text-primary)]">
+                        Ushbu kursda hali darsliklar mavjud emas
+                      </h4>
+                      <p className="text-xs text-[var(--text-muted)] mt-1 max-w-sm mx-auto mb-4">
+                        Talabalar mustaqil o'rganishi uchun birinchi darslik materialini qo'shing.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setNewLessonForm((prev) => ({
+                            ...prev,
+                            course_id: selectedCourse.id,
+                          }));
+                          setShowCreateLessonModal(true);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-[var(--gold)] text-white font-bold text-xs shadow-md hover:brightness-105 inline-flex items-center gap-1.5"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Birinchi Darsni Qo'shish</span>
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {displayLessons.map((lesson, idx) => {
+                      const isOpen = activeCourseLesson === lesson.id;
+                      return (
+                        <div
+                          key={lesson.id}
+                          className={`lux-card rounded-2xl border transition-all overflow-hidden ${
+                            isOpen
+                              ? "border-[var(--gold)] bg-white shadow-md"
+                              : "border-[var(--border-glass)] bg-[var(--bg-panel)] hover:border-[var(--gold)]/40"
+                          }`}
+                        >
+                          <div
+                            onClick={() => setActiveCourseLesson(isOpen ? null : lesson.id)}
+                            className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3.5 min-w-0">
+                              <div className="w-9 h-9 rounded-xl bg-[var(--gold)]/10 text-[var(--gold)] flex items-center justify-center font-bold text-xs shrink-0 border border-[var(--gold)]/20">
+                                {idx + 1}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] truncate">
+                                  {lesson.title}
+                                </h4>
+                                <div className="flex items-center gap-3 text-[11px] text-[var(--text-muted)] mt-0.5">
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {lesson.reading_time_minutes || 10} daqiqa
+                                  </span>
+                                  <span>•</span>
+                                  <span className="text-emerald-700 font-medium">Faol</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[11px] font-semibold text-[var(--gold)] hidden sm:inline">
+                                {isOpen ? "Yopish" : "Ko'rish"}
+                              </span>
+                              <ChevronRight
+                                className={`w-4 h-4 text-[var(--text-muted)] transition-transform duration-300 ${
+                                  isOpen ? "rotate-90 text-[var(--gold)]" : ""
+                                }`}
+                              />
+                            </div>
+                          </div>
+
+                          {isOpen && (
+                            <div className="px-5 pb-5 pt-2 border-t border-[var(--border-glass)] bg-[var(--bg-void)]/40 space-y-3 animate-in fade-in">
+                              {lesson.summary && (
+                                <div>
+                                  <span className="text-[11px] font-bold text-[var(--gold)] uppercase tracking-wider block mb-1">
+                                    Qisqacha Mazmun:
+                                  </span>
+                                  <p className="text-xs text-[var(--text-primary)] leading-relaxed bg-white/70 p-3 rounded-xl border border-[var(--border-glass)]">
+                                    {lesson.summary}
+                                  </p>
+                                </div>
+                              )}
+
+                              {lesson.content && (
+                                <div>
+                                  <span className="text-[11px] font-bold text-[var(--gold)] uppercase tracking-wider block mb-1">
+                                    Darslik Matni / Nazariya:
+                                  </span>
+                                  <div className="text-xs text-[var(--text-muted)] leading-relaxed bg-white/70 p-3 rounded-xl border border-[var(--border-glass)] whitespace-pre-line font-mono text-[11px]">
+                                    {lesson.content}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between pt-2">
+                                <span className="text-[11px] text-[var(--text-muted)]">
+                                  Slug: <code className="text-[var(--gold)]">{lesson.slug}</code>
+                                </span>
+                                <Link
+                                  to={`/simulation?courseId=${selectedCourse.id}&lessonId=${lesson.id}`}
+                                  className="px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-900 hover:bg-amber-500/25 text-[11px] font-bold flex items-center gap-1.5 transition-all"
+                                >
+                                  <Sparkles className="w-3 h-3 text-[#967b4f]" />
+                                  <span>Simulyator Keysi</span>
+                                </Link>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* ===================== VIEW 2.2: ALL COURSES GRID (WHEN NO COURSE SELECTED) ===================== */}
+        {activeTab === "courses" && !selectedCourse && (
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="flex items-center justify-between">
               <div>
@@ -681,59 +928,86 @@ export default function MentorDashboard() {
               </button>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-6">
-              {courses.map((course) => {
-                const lessonsCount =
-                  course.lessons_count ||
-                  (Array.isArray(course.lessons) ? course.lessons.length : 0);
+            {courses.length === 0 ? (
+              <div className="text-center py-16 lux-card rounded-3xl border border-[var(--border-glass)] bg-[var(--bg-panel)] shadow-sm">
+                <BookOpen className="w-12 h-12 text-[var(--gold)] mx-auto mb-3 opacity-60" />
+                <h3 className="font-serif font-bold text-lg text-[var(--text-primary)]">
+                  Hozircha kurslar mavjud emas
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mt-1 max-w-sm mx-auto mb-5">
+                  Yangi fan yo'nalishi va kurs yaratib, talabalarga bilim ulashishni boshlang!
+                </p>
+                <button
+                  onClick={() => setShowCreateCourseModal(true)}
+                  className="px-5 py-2.5 rounded-xl bg-[var(--gold)] text-white font-bold text-xs shadow-md hover:brightness-105 inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Birinchi Kursingizni Yarating</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-6">
+                {courses.map((course) => {
+                  const lessonsCount =
+                    course.lessons_count ||
+                    (Array.isArray(course.lessons) ? course.lessons.length : 0);
 
-                return (
-                  <div
-                    key={course.id}
-                    className="lux-card rounded-3xl p-6 border border-[var(--border-glass)] bg-[var(--bg-panel)] shadow-md space-y-4 flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="px-3 py-0.5 rounded-full text-[10px] font-bold bg-[var(--gold)]/15 text-[var(--gold)]">
-                          {course.domain_name || "Akademik Fan"}
-                        </span>
-                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                          Faol
-                        </span>
+                  return (
+                    <div
+                      key={course.id}
+                      onClick={() => setSelectedCourse(course)}
+                      className="lux-card rounded-3xl p-6 border border-[var(--border-glass)] bg-[var(--bg-panel)] shadow-md space-y-4 flex flex-col justify-between cursor-pointer hover:border-[var(--gold)]/60 hover:shadow-xl transition-all group"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="px-3 py-0.5 rounded-full text-[10px] font-bold bg-[var(--gold)]/15 text-[var(--gold)]">
+                            {course.domain_name || "Akademik Fan"}
+                          </span>
+                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                            Faol
+                          </span>
+                        </div>
+
+                        <h3 className="font-serif font-bold text-base text-[var(--text-primary)] group-hover:text-[var(--gold)] transition-colors">
+                          {course.title}
+                        </h3>
+                        <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed line-clamp-2">
+                          {course.description || "Ushbu kurs bo'yicha darslar va AI laboratoriya keyslari tayyorlangan."}
+                        </p>
                       </div>
 
-                      <h3 className="font-serif font-bold text-base text-[var(--text-primary)]">
-                        {course.title}
-                      </h3>
-                      <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">
-                        {course.description || "Ushbu kurs bo'yicha darslar va AI laboratoriya keyslari tayyorlangan."}
-                      </p>
+                      <div className="space-y-3">
+                        <div className="pt-4 border-t border-[var(--border-glass)] grid grid-cols-3 gap-2 text-center text-xs text-[var(--text-muted)]">
+                          <div>
+                            <span className="font-bold text-[var(--text-primary)] block">
+                              {lessonsCount} ta
+                            </span>
+                            <span className="text-[10px]">Darslar</span>
+                          </div>
+                          <div>
+                            <span className="font-bold text-[var(--text-primary)] block">
+                              {course.simulations_count || 1} ta
+                            </span>
+                            <span className="text-[10px]">AI Keyslar</span>
+                          </div>
+                          <div>
+                            <span className="font-bold text-[var(--text-primary)] block uppercase text-[11px] text-[var(--gold)]">
+                              {course.difficulty || "O'RTA"}
+                            </span>
+                            <span className="text-[10px]">Daraja</span>
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t border-[var(--border-glass)] flex items-center justify-between text-xs font-bold text-[var(--gold)] group-hover:translate-x-1 transition-transform">
+                          <span>Kurs ichiga kirish va darsliklar</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </div>
+                      </div>
                     </div>
-
-                    <div className="pt-4 border-t border-[var(--border-glass)] grid grid-cols-3 gap-2 text-center text-xs text-[var(--text-muted)]">
-                      <div>
-                        <span className="font-bold text-[var(--text-primary)] block">
-                          {lessonsCount} ta
-                        </span>
-                        <span className="text-[10px]">Darslar</span>
-                      </div>
-                      <div>
-                        <span className="font-bold text-[var(--text-primary)] block">
-                          {course.simulations_count || 1} ta
-                        </span>
-                        <span className="text-[10px]">AI Keyslar</span>
-                      </div>
-                      <div>
-                        <span className="font-bold text-[var(--text-primary)] block uppercase text-[11px] text-[var(--gold)]">
-                          {course.difficulty || "O'RTA"}
-                        </span>
-                        <span className="text-[10px]">Daraja</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -972,39 +1246,68 @@ export default function MentorDashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
-                    Fan Yo'nalishi:
-                  </label>
-                  <select
-                    value={newCourseForm.domain}
-                    onChange={(e) => setNewCourseForm({ ...newCourseForm, domain: e.target.value })}
-                    className="lux-input !py-2.5 !px-3.5 w-full text-xs cursor-pointer"
-                  >
-                    {domains.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
+              <div>
+                <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                  Fan Yo'nalishi (Yangi fan yaratish yoki tanlash):
+                </label>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <input
+                      required
+                      type="text"
+                      list="existing-domains-list"
+                      placeholder="Masalan: Kiberxavfsizlik, Kvant Fizikasi, Biotibbiyot..."
+                      value={newCourseForm.domain_name}
+                      onChange={(e) =>
+                        setNewCourseForm({ ...newCourseForm, domain_name: e.target.value })
+                      }
+                      className="lux-input !py-2.5 !px-3.5 w-full text-xs"
+                    />
+                    <datalist id="existing-domains-list">
+                      {domains.map((d) => (
+                        <option key={d.id} value={d.name} />
+                      ))}
+                    </datalist>
+                  </div>
+                  {domains.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[10px] text-[var(--text-muted)] font-medium">Mavjud fanlar:</span>
+                      {domains.map((d) => (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => setNewCourseForm({ ...newCourseForm, domain_name: d.name })}
+                          className={`text-[10px] px-2.5 py-1 rounded-lg border transition-all ${
+                            newCourseForm.domain_name === d.name
+                              ? "bg-[var(--gold)]/20 border-[var(--gold)] text-[var(--gold)] font-bold shadow-sm"
+                              : "border-[var(--border-glass)] text-[var(--text-muted)] hover:border-[var(--gold)]/50 hover:bg-[var(--bg-void)]"
+                          }`}
+                        >
+                          {d.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-[var(--text-muted)] italic">
+                    💡 Agar yangi fan nomini kiritsangiz, u avtomatik tarzda tizimga qo'shiladi va barcha talabalar uchun global bo'ladi.
+                  </p>
                 </div>
+              </div>
 
-                <div>
-                  <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
-                    Murakkablik Darajasi:
-                  </label>
-                  <select
-                    value={newCourseForm.difficulty}
-                    onChange={(e) => setNewCourseForm({ ...newCourseForm, difficulty: e.target.value })}
-                    className="lux-input !py-2.5 !px-3.5 w-full text-xs cursor-pointer"
-                  >
-                    <option value="BEGINNER">Boshlang'ich</option>
-                    <option value="INTERMEDIATE">O'rta</option>
-                    <option value="ADVANCED">Ilg'or</option>
-                    <option value="EXPERT">Ekspert</option>
-                  </select>
-                </div>
+              <div>
+                <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                  Murakkablik Darajasi:
+                </label>
+                <select
+                  value={newCourseForm.difficulty}
+                  onChange={(e) => setNewCourseForm({ ...newCourseForm, difficulty: e.target.value })}
+                  className="lux-input !py-2.5 !px-3.5 w-full text-xs cursor-pointer"
+                >
+                  <option value="BEGINNER">Boshlang'ich (Beginner)</option>
+                  <option value="INTERMEDIATE">O'rta (Intermediate)</option>
+                  <option value="ADVANCED">Ilg'or (Advanced)</option>
+                  <option value="EXPERT">Ekspert (Expert)</option>
+                </select>
               </div>
 
               <div>

@@ -400,6 +400,79 @@ class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
 
 
+class CRMLoginView(APIView):
+    """
+    CRM tizimi uchun alohida login endpoint.
+    Faqat admin, mentor va super_admin rollari kira oladi.
+    Student rollari uchun kirish qat'iyan taqiqlanadi.
+    Username va parol asosida ishlaydi (Google OAuth yo'q).
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        username_or_email = request.data.get('username', '').strip()
+        password = request.data.get('password', '').strip()
+
+        if not username_or_email or not password:
+            return Response(
+                {"detail": "Username va parol majburiy maydonlar."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Username yoki email orqali foydalanuvchini topamiz
+        from django.db.models import Q
+        user = User.objects.filter(
+            Q(username__iexact=username_or_email) | Q(email__iexact=username_or_email)
+        ).first()
+
+        if not user:
+            return Response(
+                {"detail": "Foydalanuvchi topilmadi. Username yoki emailni tekshiring."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        # Faqat CRM rollari kira oladi
+        crm_roles = ['admin', 'mentor', 'super_admin']
+        if user.role not in crm_roles:
+            return Response(
+                {"detail": "Bu tizimga kirish uchun sizda CRM (admin/mentor) roli bo'lishi shart. Talabalar uchun bu kirish eshigi mavjud emas."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Parolni tekshirish
+        from django.contrib.auth import authenticate
+        auth_user = authenticate(request, username=user.username, password=password)
+        if auth_user is None:
+            return Response(
+                {"detail": "Parol noto'g'ri kiritildi."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if not auth_user.is_active:
+            return Response(
+                {"detail": "Hisobingiz faol emas. Administrator bilan bog'laning."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # JWT token yaratamiz
+        token = LoginSerializer.get_token(auth_user)
+
+        return Response({
+            "detail": "CRM tizimiga muvaffaqiyatli kirdingiz.",
+            "access": str(token.access_token),
+            "refresh": str(token),
+            "user": {
+                "id": auth_user.id,
+                "username": auth_user.username,
+                "first_name": auth_user.first_name,
+                "last_name": auth_user.last_name,
+                "role": auth_user.role,
+                "branch_id": auth_user.branch.id if auth_user.branch else None,
+                "branch_name": auth_user.branch.name if auth_user.branch else None,
+            }
+        }, status=status.HTTP_200_OK)
+
+
 class PublicRegisterView(APIView):
     permission_classes = [AllowAny]
 

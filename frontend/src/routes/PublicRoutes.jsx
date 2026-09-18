@@ -1,5 +1,6 @@
 import { Route } from "react-router-dom";
 import Login from "../components/Authorized/login";
+import CRMLogin from "../components/Authorized/CRMLogin";
 import GroupDetailPage from "../components/GroupsComponent/GroupDetails";
 import StudentProfilePage from "../components/StudentComponents/Student";
 import StudentPayments from "../components/homework/StudentPayments";
@@ -18,6 +19,9 @@ export const PublicRoutes = (
     <Route path="/simulation" element={<SimulationPage />} />
     <Route path="/simulations" element={<SimulationPage />} />
 
+    {/* CRM Tizimi uchun alohida kirish sahifasi (admin/mentor/super_admin) */}
+    <Route path="/crm/login" element={<CRMLogin />} />
+
     {/* Protected AI Dashboards — student va mentor rollari uchun */}
     <Route element={<PrivateRoute allowed={["student", "mentor", "admin", "super_admin"]} />}>
       <Route path="/student/dashboard" element={<StudentDashboard />} />
@@ -30,4 +34,3 @@ export const PublicRoutes = (
     <Route path="/studentpayments" element={<StudentPayments />} />
   </>
 );
-

@@ -18,15 +18,27 @@ from .serializers import (
 User = get_user_model()
 
 
-class DomainListView(generics.ListAPIView):
+class DomainListView(generics.ListCreateAPIView):
     queryset = Domain.objects.filter(is_active=True).prefetch_related("courses")
     serializer_class = DomainSerializer
     permission_classes = [AllowAny]
+    pagination_class = None
+
+    def perform_create(self, serializer):
+        name = self.request.data.get("name", "").strip() or "Fan"
+        base_slug = slugify(name) or "fan"
+        slug = base_slug
+        idx = 1
+        while Domain.objects.filter(slug=slug).exists():
+            slug = f"{base_slug}-{idx}"
+            idx += 1
+        serializer.save(slug=slug, is_active=True)
 
 
 class CourseListView(generics.ListCreateAPIView):
     serializer_class = CourseSerializer
     permission_classes = [AllowAny]
+    pagination_class = None
 
     def get_queryset(self):
         base_qs = (
@@ -35,10 +47,16 @@ class CourseListView(generics.ListCreateAPIView):
             .prefetch_related("lessons", "simulation_cases")
             .order_by("sort_order", "-created_at")
         )
-        # Mentor ro'yxatdan o'tgan bo'lsa, faqat o'z kurslarini qaytaradi
         user = self.request.user
-        if user and user.is_authenticated and hasattr(user, 'role') and user.role == 'mentor':
-            return base_qs.filter(instructor=user)
+        mine = self.request.query_params.get("mine")
+
+        # Faqat o'z kurslarini boshqarish uchun ?mine=true so'ralganda
+        if mine and mine.lower() in ["true", "1"]:
+            if user and user.is_authenticated:
+                return base_qs.filter(instructor=user)
+            return base_qs.none()
+
+        # Barcha talabalar va ommaviy ko'rish uchun: barcha kurslar global ko'rinadi
         return base_qs
 
     def perform_create(self, serializer):
@@ -49,13 +67,36 @@ class CourseListView(generics.ListCreateAPIView):
 class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Course.objects.filter(is_published=True).select_related("domain", "instructor").prefetch_related("lessons", "simulation_cases")
     serializer_class = CourseSerializer
-    lookup_field = "slug"
     permission_classes = [AllowAny]
+
+    def get_object(self):
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field or "slug"
+        lookup_value = self.kwargs.get(lookup_url_kwarg) or self.kwargs.get("slug") or self.kwargs.get("pk") or self.kwargs.get("id")
+        
+        try:
+            val_uuid = uuid.UUID(str(lookup_value))
+            obj = self.queryset.filter(id=val_uuid).first()
+            if obj:
+                self.check_object_permissions(self.request, obj)
+                return obj
+        except Exception:
+            pass
+
+        obj = self.queryset.filter(slug=lookup_value).first()
+        if not obj:
+            obj = self.queryset.filter(title__iexact=lookup_value).first()
+        if obj:
+            self.check_object_permissions(self.request, obj)
+            return obj
+
+        from django.http import Http404
+        raise Http404("Kurs topilmadi")
 
 
 class LessonListCreateView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
     permission_classes = [AllowAny]
+    pagination_class = None
 
     def get_queryset(self):
         qs = Lesson.objects.filter(is_published=True).select_related("course").order_by("course", "sort_order")
@@ -79,7 +120,7 @@ class LessonListCreateView(generics.ListCreateAPIView):
             course = Course.objects.first()
 
         title = self.request.data.get("title", "Yangi Dars")
-        slug = slugify(title)
+        slug = slugify(title) or "dars"
         idx = 1
         base_slug = slug
         while Lesson.objects.filter(slug=slug, course=course).exists():

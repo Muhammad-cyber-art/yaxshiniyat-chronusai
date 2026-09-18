@@ -4,7 +4,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     RegisterViewSet, LoginView, UsersListView, CurrentUserView,
-    BranchAccessViewSet, PublicRegisterView, GoogleAuthView
+    BranchAccessViewSet, PublicRegisterView, GoogleAuthView, CRMLoginView
 )
 
 router = DefaultRouter()
@@ -17,6 +17,7 @@ urlpatterns = [
     path('register/public/', PublicRegisterView.as_view(), name='public-register-alt'),
     path('register/', include(router.urls)),                  # POST /users/ - yaratish, GET - ro'yxat
     path('login/', LoginView.as_view(), name='login'),
+    path('crm/login/', CRMLoginView.as_view(), name='crm-login'),  # CRM - faqat admin/mentor/super_admin
     path('refresh/', TokenRefreshView.as_view(), name='refresh'),
     path('users/', UsersListView.as_view(), name='users-list'),  # Umumiy ro'yxat (filtrlash mumkin)
     path('user/me/', CurrentUserView.as_view(), name='current-user'),
