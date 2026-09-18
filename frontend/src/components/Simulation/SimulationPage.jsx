@@ -49,7 +49,8 @@ export default function SimulationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [completedSession, setCompletedSession] = useState(null);
-  const [userCoins, setUserCoins] = useState(120);
+  const [userCoins, setUserCoins] = useState(0);
+  const [loadingCoins, setLoadingCoins] = useState(true);
 
   const turnsEndRef = useRef(null);
 
@@ -85,6 +86,30 @@ export default function SimulationPage() {
     }
     loadCases();
   }, [searchParams]);
+
+  // Load real coins from my-sessions
+  useEffect(() => {
+    async function loadCoins() {
+      try {
+        const res = await api.get('simulations/my-sessions/');
+        const data = res.data;
+        const list = Array.isArray(data) ? data : data?.results || [];
+        const completed = list.filter(s => s.status === 'COMPLETED');
+        const totalCoins = completed.reduce((acc, s) => acc + (s.coins_earned || 0), 0);
+        setUserCoins(totalCoins);
+      } catch (err) {
+        // Sessiyalar yuklanmasa 0 qoladi — bu to'g'ri
+        console.warn('Could not load user sessions for coins:', err);
+      } finally {
+        setLoadingCoins(false);
+      }
+    }
+    if (userInfo) {
+      loadCoins();
+    } else {
+      setLoadingCoins(false);
+    }
+  }, []);
 
   // Start a new simulation session
   async function handleStartSession(caseObj) {

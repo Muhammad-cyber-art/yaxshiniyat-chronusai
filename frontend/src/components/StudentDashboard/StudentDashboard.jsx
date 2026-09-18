@@ -150,8 +150,9 @@ export default function StudentDashboard() {
           completedSessions.reduce((acc, s) => acc + (s.total_score || 0), 0) /
             completedSessions.length
         )
-      : 94;
-  const userCoins = 100 + completedSessions.length * 25;
+      : null;
+  // Tangalar: faqat backend ma'lumotlaridan hisoblanadi
+  const userCoins = completedSessions.length > 0 ? completedSessions.length * 25 : 0;
 
   // Dynamic Categories derived from backend domains
   const categories = [
@@ -376,11 +377,10 @@ export default function StudentDashboard() {
                   const courseImg = getCourseImage(course);
                   const lessonsCount =
                     course.lessons_count ||
-                    (Array.isArray(course.lessons) ? course.lessons.length : 0) ||
-                    12;
-                  const simulationsCount = course.simulations_count || 1;
-                  const instructor = course.instructor_name || "Prof. Alisher Qodirov";
-                  const domainName = course.domain_name || "Tabiiy Fanlar";
+                    (Array.isArray(course.lessons) ? course.lessons.length : 0);
+                  const simulationsCount = course.simulations_count || 0;
+                  const instructor = course.instructor_name || currentUser?.first_name || "";
+                  const domainName = course.domain_name || "";
 
                   return (
                     <div
@@ -406,11 +406,11 @@ export default function StudentDashboard() {
                         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs">
                           <span className="flex items-center gap-1 font-bold">
                             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                            4.95
+                            {course.rating || ""}
                           </span>
                           <span className="flex items-center gap-1 opacity-90 text-[11px]">
                             <BookOpen className="w-3.5 h-3.5" />
-                            {lessonsCount} ta dars
+                            {lessonsCount > 0 ? `${lessonsCount} ta dars` : "Darslar yuklanmoqda"}
                           </span>
                         </div>
                       </div>
@@ -436,19 +436,21 @@ export default function StudentDashboard() {
                             </span>
                           </div>
 
-                          {/* Progress bar */}
-                          <div>
-                            <div className="flex items-center justify-between text-[10px] font-bold text-[var(--text-muted)] mb-1">
-                              <span>O'zlashtirish</span>
-                              <span>35%</span>
+                          {/* Progress bar — backend dan progress ma'lumoti yo'q bo'lsa ko'rsatilmaydi */}
+                          {course.user_progress !== undefined && (
+                            <div>
+                              <div className="flex items-center justify-between text-[10px] font-bold text-[var(--text-muted)] mb-1">
+                                <span>O'zlashtirish</span>
+                                <span>{course.user_progress || 0}%</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-[var(--bg-void)] rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-[var(--gold)] rounded-full transition-all"
+                                  style={{ width: `${course.user_progress || 0}%` }}
+                                />
+                              </div>
                             </div>
-                            <div className="w-full h-1.5 bg-[var(--bg-void)] rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-[var(--gold)] rounded-full transition-all"
-                                style={{ width: "35%" }}
-                              />
-                            </div>
-                          </div>
+                          )}
 
                           <div className="flex items-center justify-between pt-1">
                             <span className="text-xs font-bold text-[var(--gold)] group-hover:underline flex items-center gap-1">
@@ -505,13 +507,11 @@ export default function StudentDashboard() {
                 <div className="flex flex-wrap items-center gap-4 mt-6 text-xs text-[var(--text-muted)]">
                   <span className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
                     <User className="w-4 h-4 text-[var(--gold)]" />
-                    {selectedCourse.instructor_name || "Prof. Alisher Qodirov"}
+                    {selectedCourse.instructor_name || ""}
                   </span>
-                  <span>•</span>
-                  <span>O'zbekiston Fanlar Akademiyasi</span>
-                  <span>•</span>
+                  {selectedCourse.instructor_name && <span>•</span>}
                   <span className="uppercase font-bold text-[var(--gold)]">
-                    Daraja: {selectedCourse.difficulty || "O'rta"}
+                    Daraja: {selectedCourse.difficulty || ""}
                   </span>
                 </div>
 
@@ -545,15 +545,17 @@ export default function StudentDashboard() {
                   </h4>
                   <div className="mt-4 flex items-baseline justify-between">
                     <span className="text-3xl font-serif font-black text-[var(--text-primary)]">
-                      35%
+                      {selectedCourse.user_progress !== undefined ? `${selectedCourse.user_progress}%` : ""}
                     </span>
                     <span className="text-xs text-[var(--text-muted)]">
                       {(selectedCourse.lessons || []).length} ta dars mavjud
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-gray-200/50 rounded-full mt-2 overflow-hidden">
-                    <div className="h-full bg-[var(--gold)] rounded-full" style={{ width: "35%" }} />
-                  </div>
+                  {selectedCourse.user_progress !== undefined && (
+                    <div className="w-full h-2 bg-gray-200/50 rounded-full mt-2 overflow-hidden">
+                      <div className="h-full bg-[var(--gold)] rounded-full" style={{ width: `${selectedCourse.user_progress}%` }} />
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-3 border-t border-[var(--border-glass)] space-y-2 text-xs text-[var(--text-muted)]">
@@ -583,14 +585,15 @@ export default function StudentDashboard() {
               {(selectedCourse.lessons || []).length === 0 ? (
                 <div className="p-8 text-center lux-card rounded-2xl border border-[var(--border-glass)]">
                   <p className="text-xs text-[var(--text-muted)]">
-                    Ushbu kursga hozircha darsliklar yuklanmoqda.
+                    Ushbu kursga hozircha darsliklar yuklanmagan.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {(selectedCourse.lessons || []).map((lesson, idx) => {
                     const isOpened = activeLesson === lesson.id;
-                    const isCompleted = idx === 0; // First lesson marked completed
+                    // completion faqat backend dan kelgan ma'lumot asosida
+                    const isCompleted = lesson.is_completed === true;
 
                     return (
                       <div
@@ -695,21 +698,31 @@ export default function StudentDashboard() {
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {mentors.map((prof, i) => (
+              {mentors.length === 0 ? (
+                <div className="col-span-4 text-center py-16">
+                  <p className="text-xs text-[var(--text-muted)]">Hozircha mentorlar ma'lumotlari yuklanmagan.</p>
+                </div>
+              ) : mentors.map((prof, i) => {
+                // DiceBear placeholder — faqat avatar bo'lmasa ishlatiladi
+                const avatarSrc = prof.avatar ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(prof.name || 'mentor')}`;
+                return (
                 <div
                   key={prof.id || i}
                   className="lux-card rounded-3xl p-6 border border-[var(--border-glass)] bg-[var(--bg-panel)] shadow-md flex flex-col items-center text-center space-y-4 hover:border-[var(--gold)]/40 hover:shadow-xl transition-all"
                 >
                   <div className="relative">
                     <img
-                      src={prof.avatar}
+                      src={avatarSrc}
                       alt={prof.name}
                       className="w-24 h-24 rounded-2xl object-cover border-2 border-[var(--gold)]/30 shadow-md"
                     />
-                    <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-[var(--gold)] text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
-                      <Star className="w-3 h-3 fill-current" />
-                      {prof.rating || 4.95}
-                    </div>
+                    {prof.rating && (
+                      <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-[var(--gold)] text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                        <Star className="w-3 h-3 fill-current" />
+                        {prof.rating}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -719,21 +732,23 @@ export default function StudentDashboard() {
                     <p className="text-[11px] font-semibold text-[var(--gold)] mt-0.5">
                       {prof.title}
                     </p>
-                    <p className="text-[11px] text-[var(--text-muted)] mt-1">
-                      {prof.institution}
-                    </p>
+                    {prof.institution && (
+                      <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                        {prof.institution}
+                      </p>
+                    )}
                   </div>
 
                   <div className="w-full pt-3 border-t border-[var(--border-glass)] grid grid-cols-2 gap-2 text-xs text-[var(--text-muted)]">
                     <div>
                       <span className="font-bold text-[var(--text-primary)] block">
-                        {prof.courses_count || 2} ta
+                        {prof.courses_count ?? 0} ta
                       </span>
                       <span className="text-[10px]">O'quv kursi</span>
                     </div>
                     <div>
                       <span className="font-bold text-[var(--text-primary)] block">
-                        {prof.students_count || 340}+
+                        {prof.students_count !== null && prof.students_count !== undefined ? `${prof.students_count}+` : "—"}
                       </span>
                       <span className="text-[10px]">Shogirdlar</span>
                     </div>
@@ -749,7 +764,8 @@ export default function StudentDashboard() {
                     Kurslarini ko'rish
                   </button>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
         )}
@@ -799,7 +815,7 @@ export default function StudentDashboard() {
                         {inst.name}
                       </h3>
                       <p className="text-xs text-[var(--text-muted)]">
-                        {inst.address || "Toshkent shahri, Asosiy Ilmiy Majmua"}
+                        {inst.address || ""}
                       </p>
 
                       <div className="pt-2 text-xs text-[var(--text-muted)]">
@@ -834,11 +850,11 @@ export default function StudentDashboard() {
                   </div>
                   <h2 className="text-2xl font-serif font-black text-[var(--text-primary)]">
                     {currentUser?.first_name
-                      ? `${currentUser.first_name} ${currentUser.last_name || ""}`.strip?.() || currentUser.first_name
+                      ? `${currentUser.first_name} ${currentUser.last_name || ""}`.trim()
                       : currentUser?.username || "Talaba"}
                   </h2>
                   <p className="text-xs text-[var(--text-muted)]">
-                    {currentUser?.email || "talaba@chronosai.uz"} • ID #{currentUser?.id || currentUser?.user_id || "782"}
+                    {currentUser?.email || ""} {currentUser?.id ? `• ID #${currentUser.id}` : ""}
                   </p>
                 </div>
               </div>
@@ -855,7 +871,7 @@ export default function StudentDashboard() {
                 </div>
                 <div className="p-3 rounded-2xl bg-[var(--bg-void)]/60">
                   <span className="text-xl font-serif font-black text-emerald-600 block">
-                    {averageAiScore}%
+                    {averageAiScore !== null ? `${averageAiScore}%` : "—"}
                   </span>
                   <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase">
                     AI Simulyatsiya Bahosi

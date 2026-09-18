@@ -7,6 +7,7 @@ import { LandingPage } from "../components/Common/LandingPage";
 import SimulationPage from "../components/Simulation/SimulationPage";
 import StudentDashboard from "../components/StudentDashboard/StudentDashboard";
 import MentorDashboard from "../components/MentorDashboard/MentorDashboard";
+import PrivateRoute from "../components/Safety/ProtectedRoute";
 
 export const PublicRoutes = (
   <>
@@ -16,10 +17,12 @@ export const PublicRoutes = (
     <Route path="/filial" element={<Login />} />
     <Route path="/simulation" element={<SimulationPage />} />
     <Route path="/simulations" element={<SimulationPage />} />
-    
-    {/* Omni AI Dashboards */}
-    <Route path="/student/dashboard" element={<StudentDashboard />} />
-    <Route path="/mentor/dashboard" element={<MentorDashboard />} />
+
+    {/* Protected AI Dashboards — student va mentor rollari uchun */}
+    <Route element={<PrivateRoute allowed={["student", "mentor", "admin", "super_admin"]} />}>
+      <Route path="/student/dashboard" element={<StudentDashboard />} />
+      <Route path="/mentor/dashboard" element={<MentorDashboard />} />
+    </Route>
 
     {/* Shared/Stand-alone routes that require ALL_ACCESS usually */}
     <Route path="/group" element={<GroupDetailPage />} />

@@ -455,16 +455,16 @@ export default function MentorDashboard() {
               </span>
             </Link>
 
-            {/* Direct Link to Mentor CRM Profile */}
-            <Link
-              to="/mentor/profile"
+            {/* Direct Link to Mentor CRM */}
+            <a
+              href="/mentor"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[#967b4f]/35 bg-[#967b4f]/10 hover:bg-[#967b4f]/20 text-[#120f0d] text-xs font-bold transition-all shadow-sm active:scale-95 group"
-              title="Mentorning CRM dagi shaxsiy profiliga o'tish"
+              title="Mentorning CRM dagi boshqaruv paneliga o'tish"
             >
               <Building2 className="w-3.5 h-3.5 text-[#967b4f] group-hover:scale-110 transition-transform" />
               <span>Boshqaruvga o'tish</span>
               <ExternalLink className="w-3 h-3 text-[#967b4f] opacity-70" />
-            </Link>
+            </a>
 
             <ThemeToggle />
           </div>
@@ -490,11 +490,7 @@ export default function MentorDashboard() {
                 <div className="flex-1 text-center sm:text-left space-y-2">
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
                     <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[var(--gold)]/15 text-[var(--gold)] border border-[var(--gold)]/25">
-                      Akademik Mentor & Tadqiqotchi
-                    </span>
-                    <span className="flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-500/10 px-2.5 py-0.5 rounded-full">
-                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                      4.95 Reyting
+                      Akademik Mentor
                     </span>
                   </div>
 
@@ -505,24 +501,27 @@ export default function MentorDashboard() {
                   </h1>
 
                   <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed max-w-2xl">
-                    {currentUser?.subject ||
-                      "Molekulyar biologiya, tabiiy va zamonaviy axborot fanlari yo'nalishida iqtidorli talabalar bilan ishlovchi yetakchi mutaxassis. Chronous AI simulyatsiyalari muallifi."}
+                    {currentUser?.subject || "Chronous AI platformasida ta'lim beruvchi mentor."}
                   </p>
 
                   <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-[var(--text-muted)]">
                     <span>
                       Email:{" "}
                       <strong className="text-[var(--text-primary)]">
-                        {currentUser?.email || "mentor@chronosai.uz"}
+                        {currentUser?.email || ""}
                       </strong>
                     </span>
-                    <span>•</span>
-                    <span>
-                      Tizimdagi ID:{" "}
-                      <strong className="text-[var(--text-primary)]">
-                        #{currentUser?.id || currentUser?.user_id || "102"}
-                      </strong>
-                    </span>
+                    {currentUser?.id && (
+                      <>
+                        <span>•</span>
+                        <span>
+                          Tizimdagi ID:{" "}
+                          <strong className="text-[var(--text-primary)]">
+                            #{currentUser?.id || currentUser?.user_id}
+                          </strong>
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -558,7 +557,7 @@ export default function MentorDashboard() {
 
                 <div className="p-4 rounded-2xl bg-[var(--bg-void)]/70 border border-[var(--border-glass)] text-center">
                   <span className="text-2xl font-serif font-black text-emerald-600 block">
-                    94%
+                    {courses.length > 0 ? "—" : "—"}
                   </span>
                   <span className="text-[11px] text-[var(--text-muted)] font-semibold mt-0.5 block">
                     AI O'zlashtirish Natijasi
@@ -647,14 +646,14 @@ export default function MentorDashboard() {
                   </div>
                 </div>
 
-                <Link
-                  to="/mentor"
+                <a
+                  href="/mentor"
                   className="w-full py-3 rounded-xl bg-[#967b4f] hover:bg-[#806740] text-white font-bold text-xs text-center shadow-md transition-all flex items-center justify-center gap-2"
                 >
                   <Building2 className="w-4 h-4" />
                   <span>Haqiqiy CRM Sahifalariga O'tish</span>
                   <ArrowRight className="w-4 h-4" />
-                </Link>
+                </a>
               </div>
             </div>
           </div>
