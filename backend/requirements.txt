@@ -31,3 +31,5 @@ django-celery-beat
 gunicorn
 pandas
 numpy
+daphne
+channels

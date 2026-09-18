@@ -220,7 +220,8 @@ else:
 # ─── DATABASE (PostgreSQL + pgvector or SQLite for local/test) ────────────────
 USE_SQLITE = os.getenv("USE_SQLITE", "False").strip().lower() in ("true", "1", "yes")
 
-if USE_SQLITE or "test" in sys.argv:
+# if USE_SQLITE or "test" in sys.argv:
+if True:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
