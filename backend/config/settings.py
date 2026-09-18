@@ -295,6 +295,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
 
+# Google OAuth 2.0 Client ID Configuration
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
+
+
 # Security Headers (Production uchun)
 # Trust reverse-proxy headers (Nginx/Traefik)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
