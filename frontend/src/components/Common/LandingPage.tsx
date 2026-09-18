@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -29,8 +30,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import dashboard from "./dashboard-3d.png";
-import founder1 from "./muhammad.jpg";
-import founder2 from "./aslbek2.jpg";
 
 const spring = { type: "spring" as const, stiffness: 120, damping: 14 };
 const pop = { type: "spring" as const, stiffness: 130, damping: 13 };
@@ -127,7 +126,12 @@ const sampleCases = [
     role: "SOC Kiberxavfsizlik Mutaxassisi",
     difficulty: "EASY",
     reward: "+25 tanga",
-    desc: "Bank veb-ilovasida shubhali HTTP so'rovlar qayd etildi. URL parametrlarida SQL belgilari aniqlandi. Zudlik bilan zaiflikni bartaraf eting."
+    score: "92/100",
+    time: "0.8s",
+    desc: "Bank veb-ilovasida shubhali HTTP so'rovlar qayd etildi. URL parametrlarida SQL belgilari aniqlandi. Zudlik bilan zaiflikni bartaraf eting.",
+    studentAnswer: "Kiruvchi so'rovlardagi SQL parametrlarni Prepared Statement orqali tekshiramiz va ORM parameterized querylardan foydalanamiz.",
+    aiFeedback: "Ajoyib yechim! Prepared Statements va ORM parametrlaridan foydalanish SQL Injection zaifliklarini eng samarali to'xtatuvchi usuldir.",
+    aiStrength: "OWASP Top 10 xavfsizlik standartiga to'liq mos keladi."
   },
   {
     icon: Scale,
@@ -136,7 +140,12 @@ const sampleCases = [
     role: "Korporativ Yurist",
     difficulty: "MEDIUM",
     reward: "+30 tanga",
-    desc: "Xaridor mahsulotlar 15 kunga kechikib yetkazilgani sababli 100 mln so'm jarima talab qilmoqda. Shartnoma bandlarini va Fuqarolik Kodeksini asoslang."
+    score: "95/100",
+    time: "1.1s",
+    desc: "Xaridor mahsulotlar 15 kunga kechikib yetkazilgani sababli 100 mln so'm jarima talab qilmoqda. Shartnoma bandlarini va Fuqarolik Kodeksini asoslang.",
+    studentAnswer: "FK 333-moddasi bo'yicha fors-major holatlarini tekshirib, shartnoma 7.2-bandidagi penyani qisqartirish to'g'risida e'tiroz bildiramiz.",
+    aiFeedback: "To'g'ri strategiya! Shartnoma bandlarini moddiy huquq normalari bilan asoslash sudda da'voni 70% ga kamaytirish imkonini beradi.",
+    aiStrength: "Iqtisodiy sud amaliyoti pretsedentlariga tayangan."
   },
   {
     icon: Terminal,
@@ -145,7 +154,12 @@ const sampleCases = [
     role: "Senior Backend Muhandis",
     difficulty: "HARD",
     reward: "+40 tanga",
-    desc: "Redis keshidagi ma'lumotlar PostgreSQL asosiy bazasi bilan sinxronlashmayapti. Cache-Aside patterni va invalidatsiya mexanizmini to'g'rilang."
+    score: "98/100",
+    time: "0.9s",
+    desc: "Redis keshidagi ma'lumotlar PostgreSQL asosiy bazasi bilan sinxronlashmayapti. Cache-Aside patterni va invalidatsiya mexanizmini to'g'rilang.",
+    studentAnswer: "Cache-Aside patternidan foydalanib, DB write amalga oshgach, Redisdagi kalitni darhol invalidate (DEL) qilamiz va 300s TTL o'rnatamiz.",
+    aiFeedback: "Mukammal arxitektura! Write-through o'rniga Cache Invalidation qo'llash Race Condition holatlarini butunlay bartaraf etadi.",
+    aiStrength: "Yuqori yuklamali tizimlar (High-Load) uchun eng optimal yechim."
   }
 ];
 
@@ -200,24 +214,9 @@ const reportRows = [
   { label: "Oldingi guruh qoldig'i", value: "+ 25,000 UZS" },
 ];
 
-const founders = [
-  {
-    img: founder1,
-    name: "Muhammad Komilov",
-    contact: "@ko_milov_off , tel: +998(93)697-09-26",
-    role: "CEO & Founder & Backend & AI Engineer",
-    bio: "Texnologik strategiyalar, murakkab moliyaviy algoritmlar va Gemini AI integratsiyasi arxitektori.",
-  },
-  {
-    img: founder2,
-    name: "Aslbek Yusupov",
-    contact: "@aslbekyusupov , tel: +998(20)001-58-88",
-    role: "CTO & UI/UX Designer & Frontend Developer",
-    bio: "Zamonaviy foydalanuvchi interfeyslari (UI/UX) va yuqori unumdor frontend tizimlari muhandisi.",
-  },
-];
-
 export function LandingPage() {
+  const [activeCaseIdx, setActiveCaseIdx] = useState(0);
+
   return (
     <div data-theme="light" className="min-h-screen bg-[#fdfaf5] text-[#120f0d]">
       {/* Aurora glow background */}
@@ -260,9 +259,6 @@ export function LandingPage() {
             </a>
             <a className="transition-colors hover:text-indigo-600" href="#moliya">
               Moliya
-            </a>
-            <a className="transition-colors hover:text-indigo-600" href="#asoschilar">
-              Asoschilar
             </a>
           </div>
 
@@ -469,87 +465,173 @@ export function LandingPage() {
         {/* AI Simulation Showcase Section */}
         <section id="ai-lab" className="px-4 py-20">
           <div className="mx-auto max-w-6xl">
-            <div className="bg-gradient-to-br from-[#070b14] via-[#0d1527] to-[#070b14] rounded-[3rem] p-8 sm:p-12 lg:p-16 text-white shadow-2xl relative overflow-hidden border border-slate-800">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="relative rounded-[3rem] p-8 sm:p-12 lg:p-16 bg-gradient-to-br from-white/95 via-[#fbf8f2]/95 to-indigo-50/50 backdrop-blur-2xl border border-[#967b4f]/25 shadow-[0_25px_70px_-15px_rgba(150,123,79,0.2)] overflow-hidden">
+              {/* Luminous luxury ambient orbs */}
+              <div className="absolute -top-24 -right-24 w-96 h-96 bg-gradient-to-br from-indigo-500/15 via-purple-500/10 to-transparent rounded-full blur-[90px] pointer-events-none" />
+              <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-gradient-to-tr from-amber-500/15 via-indigo-500/10 to-transparent rounded-full blur-[90px] pointer-events-none" />
 
               <div className="relative z-10 grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
                 <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-bold mb-4">
-                    <Bot className="w-3.5 h-3.5" />
+                  <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-amber-500/10 border border-indigo-200/80 text-indigo-800 text-xs font-bold mb-4 shadow-sm">
+                    <Bot className="w-4 h-4 text-indigo-600" />
                     <span>Gemini 2.5 Flash bilan Real Simulyatsiya</span>
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
                   </div>
 
-                  <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                    Nazariyani unuting. Real keyslar bilan chiniqing!
+                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-[#120f0d] leading-[1.15]">
+                    Nazariyani unuting.{" "}
+                    <span className="bg-gradient-to-r from-amber-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                      Real keyslar bilan chiniqing!
+                    </span>
                   </h2>
 
-                  <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed">
+                  <p className="mt-4 text-[#827161] text-sm sm:text-base leading-relaxed max-w-xl">
                     Kiberxavfsizlik, Huquqshunoslik va Muhandislik sohalarida sun'iy intellekt talabaga haqiqiy vaziyatlarni taqdim etadi. O'quvchi har bir qadami bo'yicha tahliliy mulohaza va xatolarni tuzatish tavsiyalarini oladi.
                   </p>
 
-                  <div className="mt-8 space-y-3.5">
-                    {sampleCases.map((c, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/40 transition-all flex items-center justify-between gap-4"
-                      >
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
-                            <c.icon className="w-5 h-5" />
+                  <div className="mt-7 space-y-3">
+                    {sampleCases.map((c, idx) => {
+                      const isSelected = activeCaseIdx === idx;
+                      return (
+                        <motion.div
+                          key={idx}
+                          onClick={() => setActiveCaseIdx(idx)}
+                          whileHover={{ x: 4 }}
+                          transition={{ type: "spring", stiffness: 350, damping: 20 }}
+                          className={`p-4 rounded-2xl transition-all flex items-center justify-between gap-4 cursor-pointer border ${
+                            isSelected
+                              ? "bg-white border-indigo-500 shadow-[0_10px_25px_-5px_rgba(79,70,229,0.18)] ring-2 ring-indigo-500/20"
+                              : "bg-white/75 border-[#967b4f]/15 hover:bg-white hover:border-indigo-300 hover:shadow-md"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <div
+                              className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                                isSelected
+                                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                                  : "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                              }`}
+                            >
+                              <c.icon className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md">
+                                  {c.tag}
+                                </span>
+                                <span className="text-[10px] font-semibold text-[#827161]">
+                                  {c.difficulty}
+                                </span>
+                              </div>
+                              <div className="text-xs sm:text-sm font-bold text-[#120f0d] truncate">
+                                {c.title}
+                              </div>
+                              <div className="text-[11px] text-[#827161] mt-0.5">{c.role}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-xs font-bold text-white line-clamp-1">{c.title}</div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">{c.role}</div>
+
+                          <div className="shrink-0 flex items-center gap-2.5">
+                            <span className="text-[11px] font-black text-amber-800 bg-amber-500/15 border border-amber-500/25 px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                              <Coins className="w-3 h-3 text-amber-600" />
+                              <span>{c.reward}</span>
+                            </span>
+                            <div
+                              className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                                isSelected
+                                  ? "bg-indigo-600 text-white"
+                                  : "bg-gray-100 text-gray-400"
+                              }`}
+                            >
+                              <ArrowRight className="w-3 h-3" />
+                            </div>
                           </div>
-                        </div>
-                        <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full shrink-0">
-                          {c.reward}
-                        </span>
-                      </div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </div>
 
-                  <div className="mt-8">
+                  <div className="mt-8 flex items-center gap-4">
                     <Link
                       to="/simulation"
-                      className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition-transform hover:scale-105"
+                      style={{ color: "#ffffff" }}
+                      className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 font-bold text-sm shadow-[0_12px_30px_-5px_rgba(79,70,229,0.35)] transition-transform hover:scale-[1.03] active:scale-[0.98]"
                     >
-                      <Play className="w-4 h-4 fill-white" />
-                      <span>Simulyatsiya Laboratoriyasiga O'tish</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <Play className="w-4 h-4 fill-white text-white" />
+                      <span style={{ color: "#ffffff" }}>Simulyatsiya Laboratoriyasiga O'tish</span>
+                      <ArrowRight className="w-4 h-4 text-white" />
                     </Link>
                   </div>
                 </div>
 
-                {/* Simulated Turn Preview */}
-                <div className="bg-slate-950/80 border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-2xl backdrop-blur-xl">
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-                        <Bot className="w-4 h-4" />
+                {/* Simulated Turn Preview - Live Interactive Card */}
+                <div className="bg-white/95 border border-[#967b4f]/20 rounded-3xl p-6 sm:p-7 shadow-[0_20px_50px_-10px_rgba(150,123,79,0.18)] backdrop-blur-xl relative">
+                  <div className="flex items-center justify-between pb-4 border-b border-[#967b4f]/15">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/30">
+                        <Bot className="w-4.5 h-4.5" />
                       </div>
-                      <span className="text-xs font-bold text-white">AI Mutaxassis Bahosi</span>
+                      <div>
+                        <span className="text-xs font-bold text-[#120f0d] block">AI Mutaxassis Bahosi</span>
+                        <span className="text-[10px] text-indigo-600 font-medium">Gemini 2.5 Flash Real-Time tahlil</span>
+                      </div>
                     </div>
-                    <span className="text-xs font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-                      Baho: 92/100
-                    </span>
+                    <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full shadow-sm">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs font-black text-emerald-800">
+                        Baho: {sampleCases[activeCaseIdx].score}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="mt-4 space-y-4 text-xs">
-                    <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 leading-relaxed">
-                      <span className="font-bold text-indigo-400 block mb-1">Talaba javobi:</span>
-                      "Kiruvchi so'rovlardagi SQL parametrlarni Prepared Statement orqali tekshiramiz va ORM parameterized querylardan foydalanamiz."
+                  <div className="mt-5 space-y-4 text-xs">
+                    {/* Student input */}
+                    <div className="p-4 rounded-2xl bg-[#faf7f2] border border-[#967b4f]/15 shadow-sm">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-extrabold text-indigo-700 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+                          Talaba javobi:
+                        </span>
+                        <span className="text-[10px] text-[#827161]">Topshirildi</span>
+                      </div>
+                      <p className="text-[#120f0d] leading-relaxed text-xs">
+                        "{sampleCases[activeCaseIdx].studentAnswer}"
+                      </p>
                     </div>
 
-                    <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-900/40 text-slate-200 leading-relaxed">
-                      <span className="font-bold text-indigo-300 block mb-1">AI Tahlili (Gemini 2.5):</span>
-                      Ajoyib yechim! Prepared Statements va ORM parametrlaridan foydalanish SQL Injection zaifliklarini eng samarali to'xtatuvchi usuldir.
+                    {/* AI Feedback */}
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/80 via-purple-50/40 to-indigo-50/60 border border-indigo-200/80 shadow-sm">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-extrabold text-indigo-900 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                          AI Tahlili (Gemini 2.5):
+                        </span>
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100/70 px-2 py-0.5 rounded-md">
+                          {sampleCases[activeCaseIdx].time}
+                        </span>
+                      </div>
+                      <p className="text-[#120f0d] leading-relaxed text-xs">
+                        {sampleCases[activeCaseIdx].aiFeedback}
+                      </p>
                     </div>
 
-                    <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/30 text-emerald-300 flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span>Kuchli tomon: OWASP Top 10 xavfsizlik standartiga to'liq mos keladi.</span>
+                    {/* Strength / Compliance */}
+                    <div className="p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-emerald-900 flex items-center gap-2.5 shadow-sm">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="font-medium text-xs">
+                        <strong className="font-bold text-emerald-900">Kuchli tomon:</strong>{" "}
+                        {sampleCases[activeCaseIdx].aiStrength}
+                      </span>
+                    </div>
+
+                    {/* Performance Micro-bar */}
+                    <div className="pt-3 border-t border-[#967b4f]/15 flex items-center justify-between text-[11px] text-[#827161]">
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        Mukofot: <strong className="text-amber-800 font-bold">{sampleCases[activeCaseIdx].reward} berildi</strong>
+                      </span>
+                      <span className="text-indigo-600 font-semibold cursor-pointer hover:underline">
+                        Batafsil matrisa →
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -729,55 +811,7 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Founders */}
-        <section id="asoschilar" className="px-4 py-20">
-          <div className="mx-auto max-w-5xl">
-            <div className="text-center max-w-2xl mx-auto">
-              <span className="text-xs font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-200 px-3.5 py-1.5 rounded-full">
-                Mualliflar va Jamoadoshlar
-              </span>
-              <h2 className="mt-4 text-3xl font-black md:text-5xl text-[#120f0d]">
-                Loyihamiz Asoschilari
-              </h2>
-              <p className="mt-4 text-[#827161] md:text-lg">
-                Tizimni eng yuksak standartlarda yaratgan va raqamli ta'lim kelajagini shakllantirgan yetakchi mutaxassislar.
-              </p>
-            </div>
 
-            <div className="mt-12 grid gap-8 sm:grid-cols-2">
-              {founders.map((f, i) => (
-                <motion.article
-                  key={f.name}
-                  initial={{ opacity: 0, y: 44, scale: 0.96 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={{ once: true, margin: "-60px" }}
-                  transition={{ ...pop, delay: i * 0.12 }}
-                  whileHover={{ y: -8 }}
-                  className="bg-white/90 backdrop-blur-2xl border border-[#967b4f]/15 shadow-xl rounded-[2.5rem] p-8 flex flex-col items-center text-center"
-                >
-                  <div className="relative mb-6 rounded-full p-1.5 bg-gradient-to-tr from-[#967b4f] to-indigo-400 shadow-[0_15px_30px_rgba(150,123,79,0.25)]">
-                    <img
-                      src={f.img}
-                      alt={`${f.name} - ${f.role}`}
-                      loading="lazy"
-                      className="relative h-36 w-36 rounded-full object-cover border-[5px] border-white"
-                    />
-                  </div>
-                  <div className="mt-2 text-center">
-                    <h3 className="text-2xl font-bold text-[#120f0d]">{f.name}</h3>
-                    <p className="mt-1.5 text-xs font-bold tracking-wider text-indigo-700 uppercase">
-                      {f.role}
-                    </p>
-                    <p className="mt-4 text-sm leading-relaxed text-[#827161]">{f.bio}</p>
-                    <p className="mt-4 text-xs font-semibold text-gray-500">
-                      {f.contact}
-                    </p>
-                  </div>
-                </motion.article>
-              ))}
-            </div>
-          </div>
-        </section>
       </main>
 
       {/* Footer */}
