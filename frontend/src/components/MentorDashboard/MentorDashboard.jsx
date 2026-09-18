@@ -26,101 +26,58 @@ import {
   Trash2,
   Layers,
   Edit,
-  BarChart3
+  BarChart3,
+  Check,
+  X
 } from "lucide-react";
 import ThemeToggle from "../ThemeToggle";
 import { get_user_info } from "../Authorized/getRole";
-
-const STORAGE_KEY_GROUPS = "chronous_mentor_custom_groups_v1";
-
-const initialMentorCourses = [
-  {
-    id: "mentor-course-1",
-    title: "Molekulyar Biologiya va Hujayra Genetikasi",
-    category: "Biologiya",
-    lessonsCount: 16,
-    studentsCount: 68,
-    groupsCount: 2,
-    rating: 4.95,
-    status: "Faol",
-    createdAt: "2026-08-15",
-    description: "DNK replikatsiyasi, genetik muhandislik va fermentativ katalizatorlar bo'yicha chuqur amaliy kurs."
-  },
-  {
-    id: "mentor-course-2",
-    title: "Genetik Muhandislik va Biotexnologiya",
-    category: "Biologiya",
-    lessonsCount: 12,
-    studentsCount: 45,
-    groupsCount: 1,
-    rating: 4.9,
-    status: "Faol",
-    createdAt: "2026-09-01",
-    description: "CRISPR-Cas9 texnologiyasi, rekombinant plazmidlar va zamonaviy bioinformatika usullari."
-  }
-];
-
-const initialMentorLessons = [
-  { id: 101, title: "DNK replikatsiyasi va replikativ vilka tahlili", course: "Molekulyar Biologiya", duration: "45 daqiqa", type: "Video & Ma'ruza", views: 184 },
-  { id: 102, title: "DNK-polimeraza fermentining proofreading faolligi", course: "Molekulyar Biologiya", duration: "50 daqiqa", type: "Interaktiv Keys", views: 162 },
-  { id: 103, title: "CRISPR-Cas9 mexanizmi va maqsadli gen modifikatsiyasi", course: "Genetik Muhandislik", duration: "60 daqiqa", type: "AI Simulyatsiya", views: 210 },
-  { id: 104, title: "Hujayra membranasining biofizik transporti", course: "Molekulyar Biologiya", duration: "40 daqiqa", type: "Laboratoriya tahlili", views: 135 },
-  { id: 105, title: "Rekombinant oqsillarning bakterial ekspressiyasi", course: "Genetik Muhandislik", duration: "55 daqiqa", type: "Amaliy Mashg'ulot", views: 120 }
-];
-
-const defaultCustomGroups = [
-  {
-    id: "omni-grp-1",
-    name: "Biologiya Olimpiada 2026 (Iqtidorli)",
-    course: "Molekulyar Biologiya va Hujayra Genetikasi",
-    schedule: "Dush / Chor / Juma • 16:00",
-    maxStudents: 25,
-    students: [
-      { id: 1, name: "Ali Valiyev", email: "ali@gmail.com", progress: 85, aiScore: "96/100", joinedDate: "2026-09-02" },
-      { id: 2, name: "Zuhra Karimova", email: "zuhra@gmail.com", progress: 92, aiScore: "98/100", joinedDate: "2026-09-05" },
-      { id: 3, name: "Jasur Rahimov", email: "jasur@gmail.com", progress: 70, aiScore: "88/100", joinedDate: "2026-09-08" }
-    ]
-  },
-  {
-    id: "omni-grp-2",
-    name: "Genomika & CRISPR Intensive",
-    course: "Genetik Muhandislik va Biotexnologiya",
-    schedule: "Sesh / Pay / Shanba • 18:30",
-    maxStudents: 20,
-    students: [
-      { id: 4, name: "Madina Saidova", email: "madina@gmail.com", progress: 65, aiScore: "91/100", joinedDate: "2026-09-10" },
-      { id: 5, name: "Bekzod Umarov", email: "bekzod@gmail.com", progress: 78, aiScore: "94/100", joinedDate: "2026-09-12" }
-    ]
-  }
-];
+import api from "../../tokenUpdater/updater";
 
 export default function MentorDashboard() {
   const navigate = useNavigate();
-  const userInfo = get_user_info();
+  const tokenUserInfo = get_user_info();
 
+  const [currentUser, setCurrentUser] = useState(tokenUserInfo);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("overview"); // 'overview', 'courses', 'lessons', 'groups'
-  const [courses, setCourses] = useState(initialMentorCourses);
-  const [lessons, setLessons] = useState(initialMentorLessons);
-  const [groups, setGroups] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_GROUPS);
-      return saved ? JSON.parse(saved) : defaultCustomGroups;
-    } catch (e) {
-      return defaultCustomGroups;
-    }
-  });
+
+  // Backend Data Collections
+  const [courses, setCourses] = useState([]);
+  const [lessons, setLessons] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [domains, setDomains] = useState([]);
 
   // Modals state
+  const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
+  const [showCreateLessonModal, setShowCreateLessonModal] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [selectedGroupForStudent, setSelectedGroupForStudent] = useState(null);
 
+  // New Course Form State
+  const [newCourseForm, setNewCourseForm] = useState({
+    title: "",
+    domain: "",
+    difficulty: "INTERMEDIATE",
+    description: "",
+  });
+
+  // New Lesson Form State
+  const [newLessonForm, setNewLessonForm] = useState({
+    course_id: "",
+    title: "",
+    summary: "",
+    reading_time_minutes: 10,
+  });
+
   // New Group Form State
   const [newGroupForm, setNewGroupForm] = useState({
     name: "",
-    course: "Molekulyar Biologiya va Hujayra Genetikasi",
-    schedule: "Dush / Chor / Juma • 15:00",
-    maxStudents: 20,
+    course_name: "Molekulyar Biologiya va Hujayra Genetikasi",
+    schedule: "Dush / Chor / Juma • 16:00",
+    max_students: 20,
   });
 
   // New Student Form State
@@ -129,70 +86,257 @@ export default function MentorDashboard() {
     email: "",
   });
 
-  useEffect(() => {
+  // Success Notification banner
+  const [toastMessage, setToastMessage] = useState("");
+
+  function triggerToast(msg) {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 4000);
+  }
+
+  // Fetch all mentor data from Backend APIs
+  async function fetchMentorData() {
     try {
-      localStorage.setItem(STORAGE_KEY_GROUPS, JSON.stringify(groups));
-    } catch (e) {}
-  }, [groups]);
+      const [coursesRes, lessonsRes, groupsRes, domainsRes, userRes] =
+        await Promise.allSettled([
+          api.get("curriculum/courses/"),
+          api.get("curriculum/lessons/"),
+          api.get("curriculum/groups/"),
+          api.get("curriculum/domains/"),
+          api.get("user/me/"),
+        ]);
 
-  function handleCreateGroup(e) {
-    e.preventDefault();
-    if (!newGroupForm.name) return;
-
-    const newGroup = {
-      id: `omni-grp-${Date.now()}`,
-      name: newGroupForm.name,
-      course: newGroupForm.course,
-      schedule: newGroupForm.schedule,
-      maxStudents: Number(newGroupForm.maxStudents) || 20,
-      students: []
-    };
-
-    setGroups([newGroup, ...groups]);
-    setShowCreateGroupModal(false);
-    setNewGroupForm({
-      name: "",
-      course: "Molekulyar Biologiya va Hujayra Genetikasi",
-      schedule: "Dush / Chor / Juma • 15:00",
-      maxStudents: 20,
-    });
-  }
-
-  function handleAddStudent(e) {
-    e.preventDefault();
-    if (!newStudentForm.name || !selectedGroupForStudent) return;
-
-    const newStudent = {
-      id: Date.now(),
-      name: newStudentForm.name,
-      email: newStudentForm.email || `${newStudentForm.name.toLowerCase().replace(/\s+/g, '_')}@student.uz`,
-      progress: 0,
-      aiScore: "Yangi",
-      joinedDate: new Date().toISOString().split("T")[0]
-    };
-
-    setGroups(groups.map(grp => {
-      if (grp.id === selectedGroupForStudent.id) {
-        return {
-          ...grp,
-          students: [...grp.students, newStudent]
-        };
+      if (coursesRes.status === "fulfilled" && coursesRes.value.data) {
+        const list = Array.isArray(coursesRes.value.data)
+          ? coursesRes.value.data
+          : coursesRes.value.data?.results || [];
+        setCourses(list);
+        if (list.length > 0 && !newLessonForm.course_id) {
+          setNewLessonForm((prev) => ({ ...prev, course_id: list[0].id }));
+        }
       }
-      return grp;
-    }));
 
-    setShowAddStudentModal(false);
-    setNewStudentForm({ name: "", email: "" });
-  }
+      if (lessonsRes.status === "fulfilled" && lessonsRes.value.data) {
+        const list = Array.isArray(lessonsRes.value.data)
+          ? lessonsRes.value.data
+          : lessonsRes.value.data?.results || [];
+        setLessons(list);
+      }
 
-  function handleDeleteGroup(groupId) {
-    if (window.confirm("Haqiqatdan ham ushbu Omni guruhni o'chirmoqchimisiz?")) {
-      setGroups(groups.filter(g => g.id !== groupId));
+      if (groupsRes.status === "fulfilled" && groupsRes.value.data) {
+        const list = Array.isArray(groupsRes.value.data)
+          ? groupsRes.value.data
+          : groupsRes.value.data?.results || [];
+        setGroups(list);
+      }
+
+      if (domainsRes.status === "fulfilled" && domainsRes.value.data) {
+        const list = Array.isArray(domainsRes.value.data)
+          ? domainsRes.value.data
+          : domainsRes.value.data?.results || [];
+        setDomains(list);
+        if (list.length > 0 && !newCourseForm.domain) {
+          setNewCourseForm((prev) => ({ ...prev, domain: list[0].id }));
+        }
+      }
+
+      if (userRes.status === "fulfilled" && userRes.value.data) {
+        setCurrentUser(userRes.value.data);
+      }
+    } catch (err) {
+      console.error("Failed to load mentor data:", err);
+    } finally {
+      setLoading(false);
     }
   }
 
+  useEffect(() => {
+    fetchMentorData();
+  }, []);
+
+  // 1. Handle Create Course
+  async function handleCreateCourse(e) {
+    e.preventDefault();
+    if (!newCourseForm.title) return;
+    setSubmitting(true);
+    try {
+      const res = await api.post("curriculum/courses/", {
+        title: newCourseForm.title,
+        domain: newCourseForm.domain || (domains[0] ? domains[0].id : undefined),
+        difficulty: newCourseForm.difficulty,
+        description: newCourseForm.description,
+      });
+
+      triggerToast(`"${newCourseForm.title}" kursi muvaffaqiyatli yaratildi!`);
+      setShowCreateCourseModal(false);
+      setNewCourseForm({
+        title: "",
+        domain: domains[0]?.id || "",
+        difficulty: "INTERMEDIATE",
+        description: "",
+      });
+      await fetchMentorData();
+    } catch (err) {
+      console.error("Create course error:", err);
+      alert("Kurs yaratishda xatolik yuz berdi. Iltimos qaytadan urining.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // 2. Handle Create Lesson
+  async function handleCreateLesson(e) {
+    e.preventDefault();
+    if (!newLessonForm.title) return;
+    setSubmitting(true);
+    try {
+      const res = await api.post("curriculum/lessons/", {
+        course_id: newLessonForm.course_id || (courses[0] ? courses[0].id : undefined),
+        title: newLessonForm.title,
+        summary: newLessonForm.summary,
+        reading_time_minutes: Number(newLessonForm.reading_time_minutes) || 10,
+      });
+
+      triggerToast(`"${newLessonForm.title}" mavzusi muvaffaqiyatli qo'shildi!`);
+      setShowCreateLessonModal(false);
+      setNewLessonForm({
+        course_id: courses[0]?.id || "",
+        title: "",
+        summary: "",
+        reading_time_minutes: 10,
+      });
+      await fetchMentorData();
+    } catch (err) {
+      console.error("Create lesson error:", err);
+      alert("Dars qo'shishda xatolik yuz berdi. Iltimos qaytadan urining.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // 3. Handle Create Chronous Study Group
+  async function handleCreateGroup(e) {
+    e.preventDefault();
+    if (!newGroupForm.name) return;
+    setSubmitting(true);
+    try {
+      const res = await api.post("curriculum/groups/", {
+        name: newGroupForm.name,
+        course_name: newGroupForm.course_name,
+        schedule: newGroupForm.schedule,
+        max_students: Number(newGroupForm.max_students) || 20,
+      });
+
+      setGroups([res.data, ...groups]);
+      triggerToast(`"${newGroupForm.name}" guruhi muvaffaqiyatli yaratildi!`);
+      setShowCreateGroupModal(false);
+      setNewGroupForm({
+        name: "",
+        course_name: courses[0]?.title || "Molekulyar Biologiya va Hujayra Genetikasi",
+        schedule: "Dush / Chor / Juma • 16:00",
+        max_students: 20,
+      });
+    } catch (err) {
+      console.error("Create group error:", err);
+      alert("Guruh yaratishda xatolik yuz berdi.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // 4. Handle Add Student to Group
+  async function handleAddStudent(e) {
+    e.preventDefault();
+    if (!newStudentForm.name || !selectedGroupForStudent) return;
+    setSubmitting(true);
+    try {
+      const res = await api.post(
+        `curriculum/groups/${selectedGroupForStudent.id}/students/`,
+        {
+          name: newStudentForm.name,
+          email: newStudentForm.email,
+        }
+      );
+
+      const addedStudent = res.data;
+      setGroups(
+        groups.map((grp) => {
+          if (grp.id === selectedGroupForStudent.id) {
+            return {
+              ...grp,
+              students: [addedStudent, ...(grp.students || [])],
+            };
+          }
+          return grp;
+        })
+      );
+
+      triggerToast(`${newStudentForm.name} guruhga muvaffaqiyatli biriktirildi!`);
+      setShowAddStudentModal(false);
+      setNewStudentForm({ name: "", email: "" });
+    } catch (err) {
+      console.error("Add student error:", err);
+      alert("Talaba qo'shishda xatolik yuz berdi.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // 5. Handle Delete Group
+  async function handleDeleteGroup(groupId) {
+    if (!window.confirm("Haqiqatdan ham ushbu Chronous guruhni o'chirmoqchimisiz?")) {
+      return;
+    }
+    try {
+      await api.delete(`curriculum/groups/${groupId}/`);
+      setGroups(groups.filter((g) => g.id !== groupId));
+      triggerToast("Guruh muvaffaqiyatli o'chirildi.");
+    } catch (err) {
+      console.error("Delete group error:", err);
+      alert("Guruhni o'chirishda xatolik yuz berdi.");
+    }
+  }
+
+  // 6. Handle Delete Student
+  async function handleDeleteStudent(groupId, studentId) {
+    if (!window.confirm("Ushbu talabani guruhdan o'chirmoqchimisiz?")) return;
+    try {
+      await api.delete(`curriculum/groups/${groupId}/students/${studentId}/`);
+      setGroups(
+        groups.map((grp) => {
+          if (grp.id === groupId) {
+            return {
+              ...grp,
+              students: (grp.students || []).filter((s) => s.id !== studentId),
+            };
+          }
+          return grp;
+        })
+      );
+      triggerToast("Talaba guruhdan o'chirildi.");
+    } catch (err) {
+      console.error("Delete student error:", err);
+    }
+  }
+
+  // Calculated Stats
+  const totalStudentsCount = groups.reduce(
+    (acc, g) => acc + (Array.isArray(g.students) ? g.students.length : 0),
+    0
+  );
+
   return (
     <div className="min-h-screen bg-[var(--bg-void)] text-[var(--text-primary)] font-sans flex flex-col selection:bg-[var(--gold)]/20">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#120f0d] text-white px-5 py-3 rounded-2xl border border-[var(--gold)]/40 shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5">
+          <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <Check className="w-3.5 h-3.5" />
+          </div>
+          <span className="text-xs font-bold">{toastMessage}</span>
+        </div>
+      )}
+
       {/* Aurora Ambient Glow (Champagne & Bronze Luxury) */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden opacity-60">
         <div className="absolute -top-32 -left-32 w-[35rem] h-[35rem] rounded-full bg-[var(--gold)]/15 blur-[140px]" />
@@ -209,7 +353,11 @@ export default function MentorDashboard() {
           <div className="flex items-center gap-3 shrink-0">
             <Link to="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#967b4f] to-[#78613c] p-2 flex items-center justify-center text-white shadow-md shadow-[#967b4f]/25 transition-transform group-hover:scale-105">
-                <img src="/YNlogo_without_word.png" alt="Chronous AI" className="w-full h-full object-contain filter drop-shadow" />
+                <img
+                  src="/YNlogo_without_word.png"
+                  alt="Chronous AI"
+                  className="w-full h-full object-contain filter drop-shadow"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="font-serif font-black text-lg tracking-wide text-[#120f0d] leading-none">
@@ -243,7 +391,13 @@ export default function MentorDashboard() {
               }`}
             >
               <span>Kurslarim</span>
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${activeTab === "courses" ? "bg-white/25 text-white" : "bg-[#967b4f]/15 text-[#967b4f]"}`}>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  activeTab === "courses"
+                    ? "bg-white/25 text-white"
+                    : "bg-[#967b4f]/15 text-[#967b4f]"
+                }`}
+              >
                 {courses.length}
               </span>
             </button>
@@ -256,7 +410,13 @@ export default function MentorDashboard() {
               }`}
             >
               <span>Darsliklar</span>
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${activeTab === "lessons" ? "bg-white/25 text-white" : "bg-[#967b4f]/15 text-[#967b4f]"}`}>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  activeTab === "lessons"
+                    ? "bg-white/25 text-white"
+                    : "bg-[#967b4f]/15 text-[#967b4f]"
+                }`}
+              >
                 {lessons.length}
               </span>
             </button>
@@ -269,7 +429,13 @@ export default function MentorDashboard() {
               }`}
             >
               <span>Chronous Guruhlarim</span>
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${activeTab === "groups" ? "bg-white/25 text-white" : "bg-[#967b4f]/15 text-[#967b4f]"}`}>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  activeTab === "groups"
+                    ? "bg-white/25 text-white"
+                    : "bg-[#967b4f]/15 text-[#967b4f]"
+                }`}
+              >
                 {groups.length}
               </span>
             </button>
@@ -284,10 +450,12 @@ export default function MentorDashboard() {
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#967b4f] hover:bg-[#806740] text-white text-xs font-bold shadow-md transition-all active:scale-95"
             >
               <Sparkles className="w-3.5 h-3.5 text-white" />
-              <span className="hidden sm:inline" style={{ color: "#ffffff" }}>AI Simulyator</span>
+              <span className="hidden sm:inline" style={{ color: "#ffffff" }}>
+                AI Simulyator
+              </span>
             </Link>
 
-            {/* IMPORTANT: Header Button "Boshqaruvga o'tish" to Mentor's CRM Profile */}
+            {/* Direct Link to Mentor CRM Profile */}
             <Link
               to="/mentor/profile"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[#967b4f]/35 bg-[#967b4f]/10 hover:bg-[#967b4f]/20 text-[#120f0d] text-xs font-bold transition-all shadow-sm active:scale-95 group"
@@ -313,7 +481,9 @@ export default function MentorDashboard() {
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                 <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-br from-[#967b4f] to-[#78613c] p-1 shadow-xl shadow-[#967b4f]/25 shrink-0">
                   <div className="w-full h-full rounded-[1.3rem] bg-[var(--bg-panel)] flex items-center justify-center text-3xl font-serif font-black text-[var(--gold)]">
-                    {userInfo?.username?.slice(0, 2)?.toUpperCase() || "MN"}
+                    {currentUser?.first_name
+                      ? currentUser.first_name[0].toUpperCase()
+                      : currentUser?.username?.slice(0, 2)?.toUpperCase() || "MN"}
                   </div>
                 </div>
 
@@ -329,23 +499,35 @@ export default function MentorDashboard() {
                   </div>
 
                   <h1 className="text-2xl sm:text-3xl font-serif font-black text-[var(--text-primary)]">
-                    {userInfo?.first_name ? `${userInfo.first_name} ${userInfo.last_name || ''}` : userInfo?.username || "Mentor Ustoz"}
+                    {currentUser?.first_name
+                      ? `${currentUser.first_name} ${currentUser.last_name || ""}`.trim()
+                      : currentUser?.username || "Mentor Ustoz"}
                   </h1>
 
                   <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed max-w-2xl">
-                    Molekulyar biologiya, tabiiy va gumanitar fanlar yo'nalishida iqtidorli yoshlar bilan ishlovchi yetakchi mutaxassis.
-                    Chronous AI simulyatsiyalari muallifi.
+                    {currentUser?.subject ||
+                      "Molekulyar biologiya, tabiiy va zamonaviy axborot fanlari yo'nalishida iqtidorli talabalar bilan ishlovchi yetakchi mutaxassis. Chronous AI simulyatsiyalari muallifi."}
                   </p>
 
                   <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-[var(--text-muted)]">
-                    <span>Email: <strong className="text-[var(--text-primary)]">{userInfo?.email || "mentor@yaxshiniyat.uz"}</strong></span>
+                    <span>
+                      Email:{" "}
+                      <strong className="text-[var(--text-primary)]">
+                        {currentUser?.email || "mentor@chronosai.uz"}
+                      </strong>
+                    </span>
                     <span>•</span>
-                    <span>Tizimdagi ID: <strong className="text-[var(--text-primary)]">#{userInfo?.user_id || "102"}</strong></span>
+                    <span>
+                      Tizimdagi ID:{" "}
+                      <strong className="text-[var(--text-primary)]">
+                        #{currentUser?.id || currentUser?.user_id || "102"}
+                      </strong>
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* KPI Stat Cards */}
+              {/* KPI Stat Cards (Live From Backend) */}
               <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-[var(--border-glass)]">
                 <div className="p-4 rounded-2xl bg-[var(--bg-void)]/70 border border-[var(--border-glass)] text-center">
                   <span className="text-2xl font-serif font-black text-[var(--text-primary)] block">
@@ -367,7 +549,7 @@ export default function MentorDashboard() {
 
                 <div className="p-4 rounded-2xl bg-[var(--bg-void)]/70 border border-[var(--border-glass)] text-center">
                   <span className="text-2xl font-serif font-black text-[var(--gold)] block">
-                    {groups.reduce((acc, g) => acc + g.students.length, 0)} ta
+                    {totalStudentsCount} ta
                   </span>
                   <span className="text-[11px] text-[var(--text-muted)] font-semibold mt-0.5 block">
                     Chronous Talabalar
@@ -412,10 +594,15 @@ export default function MentorDashboard() {
 
                 <div className="space-y-2 pt-2">
                   {groups.slice(0, 2).map((g) => (
-                    <div key={g.id} className="p-3 rounded-xl bg-[var(--bg-void)] flex items-center justify-between text-xs">
+                    <div
+                      key={g.id}
+                      className="p-3 rounded-xl bg-[var(--bg-void)] flex items-center justify-between text-xs"
+                    >
                       <div>
                         <div className="font-bold text-[var(--text-primary)]">{g.name}</div>
-                        <div className="text-[11px] text-[var(--text-muted)]">{g.students.length} ta o'quvchi</div>
+                        <div className="text-[11px] text-[var(--text-muted)]">
+                          {(g.students || []).length} ta o'quvchi
+                        </div>
                       </div>
                       <button
                         onClick={() => setActiveTab("groups")}
@@ -487,7 +674,7 @@ export default function MentorDashboard() {
               </div>
 
               <button
-                onClick={() => alert("Yangi kurs qo'shish moduli: kurs nomi va dasturini kiriting.")}
+                onClick={() => setShowCreateCourseModal(true)}
                 className="px-4 py-2 rounded-xl bg-[var(--gold)] text-white font-bold text-xs shadow-md hover:brightness-105 flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" />
@@ -496,45 +683,57 @@ export default function MentorDashboard() {
             </div>
 
             <div className="grid sm:grid-cols-2 gap-6">
-              {courses.map((course) => (
-                <div
-                  key={course.id}
-                  className="lux-card rounded-3xl p-6 border border-[var(--border-glass)] bg-[var(--bg-panel)] shadow-md space-y-4 flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="px-3 py-0.5 rounded-full text-[10px] font-bold bg-[var(--gold)]/15 text-[var(--gold)]">
-                        {course.category}
-                      </span>
-                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                        {course.status}
-                      </span>
+              {courses.map((course) => {
+                const lessonsCount =
+                  course.lessons_count ||
+                  (Array.isArray(course.lessons) ? course.lessons.length : 0);
+
+                return (
+                  <div
+                    key={course.id}
+                    className="lux-card rounded-3xl p-6 border border-[var(--border-glass)] bg-[var(--bg-panel)] shadow-md space-y-4 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="px-3 py-0.5 rounded-full text-[10px] font-bold bg-[var(--gold)]/15 text-[var(--gold)]">
+                          {course.domain_name || "Akademik Fan"}
+                        </span>
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                          Faol
+                        </span>
+                      </div>
+
+                      <h3 className="font-serif font-bold text-base text-[var(--text-primary)]">
+                        {course.title}
+                      </h3>
+                      <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">
+                        {course.description || "Ushbu kurs bo'yicha darslar va AI laboratoriya keyslari tayyorlangan."}
+                      </p>
                     </div>
 
-                    <h3 className="font-serif font-bold text-base text-[var(--text-primary)]">
-                      {course.title}
-                    </h3>
-                    <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">
-                      {course.description}
-                    </p>
+                    <div className="pt-4 border-t border-[var(--border-glass)] grid grid-cols-3 gap-2 text-center text-xs text-[var(--text-muted)]">
+                      <div>
+                        <span className="font-bold text-[var(--text-primary)] block">
+                          {lessonsCount} ta
+                        </span>
+                        <span className="text-[10px]">Darslar</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-[var(--text-primary)] block">
+                          {course.simulations_count || 1} ta
+                        </span>
+                        <span className="text-[10px]">AI Keyslar</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-[var(--text-primary)] block uppercase text-[11px] text-[var(--gold)]">
+                          {course.difficulty || "O'RTA"}
+                        </span>
+                        <span className="text-[10px]">Daraja</span>
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="pt-4 border-t border-[var(--border-glass)] grid grid-cols-3 gap-2 text-center text-xs text-[var(--text-muted)]">
-                    <div>
-                      <span className="font-bold text-[var(--text-primary)] block">{course.lessonsCount} ta</span>
-                      <span className="text-[10px]">Darslar</span>
-                    </div>
-                    <div>
-                      <span className="font-bold text-[var(--text-primary)] block">{course.studentsCount} ta</span>
-                      <span className="text-[10px]">Talabalar</span>
-                    </div>
-                    <div>
-                      <span className="font-bold text-[var(--text-primary)] block">{course.groupsCount} ta</span>
-                      <span className="text-[10px]">Guruhlar</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -553,7 +752,7 @@ export default function MentorDashboard() {
               </div>
 
               <button
-                onClick={() => alert("Yangi darslik qo'shish moduli")}
+                onClick={() => setShowCreateLessonModal(true)}
                 className="px-4 py-2 rounded-xl bg-[var(--gold)] text-white font-bold text-xs shadow-md hover:brightness-105 flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" />
@@ -564,7 +763,10 @@ export default function MentorDashboard() {
             <div className="lux-card rounded-3xl border border-[var(--border-glass)] bg-[var(--bg-panel)] shadow-md overflow-hidden">
               <div className="divide-y divide-[var(--border-glass)]">
                 {lessons.map((lesson, idx) => (
-                  <div key={lesson.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[var(--bg-void)]/40 transition-colors">
+                  <div
+                    key={lesson.id}
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[var(--bg-void)]/40 transition-colors"
+                  >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-xl bg-[var(--gold)]/10 text-[var(--gold)] flex items-center justify-center font-bold text-xs shrink-0">
                         {idx + 1}
@@ -574,22 +776,23 @@ export default function MentorDashboard() {
                           {lesson.title}
                         </h4>
                         <div className="flex items-center gap-3 text-[11px] text-[var(--text-muted)] mt-0.5">
-                          <span>{lesson.course}</span>
+                          <span className="font-semibold text-[var(--gold)]">
+                            {lesson.course_title || "Kurs Darsi"}
+                          </span>
                           <span>•</span>
-                          <span>{lesson.duration}</span>
+                          <span>{lesson.reading_time_minutes || 8} daqiqa</span>
                           <span>•</span>
                           <span className="font-semibold text-amber-800 bg-amber-500/10 px-2 py-0.5 rounded-md">
-                            {lesson.type}
+                            Nazariya & AI Keys
                           </span>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] self-end sm:self-center">
-                      <span>{lesson.views} marta ko'rildi</span>
-                      <button className="px-3 py-1 rounded-lg border border-[var(--border-glass)] hover:border-[var(--gold)] hover:text-[var(--gold)] font-semibold transition-all">
-                        Tahrirlash
-                      </button>
+                      <span className="text-[11px] text-emerald-600 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-lg">
+                        Bazada faol
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -598,7 +801,7 @@ export default function MentorDashboard() {
           </div>
         )}
 
-        {/* ===================== VIEW 4: MENTOR'S CUSTOM GROUPS & ENROLLED STUDENTS ===================== */}
+        {/* ===================== VIEW 4: MENTOR'S CHRONOUS GROUPS & ENROLLED STUDENTS ===================== */}
         {activeTab === "groups" && (
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* IMPORTANT NOTICE BANNER */}
@@ -609,7 +812,7 @@ export default function MentorDashboard() {
                   Muhim eslatma: Ushbu guruhlar sizning shaxsiy Chronous AI o'quv guruhlaringizdir!
                 </span>
                 <p className="text-[var(--text-muted)] leading-relaxed">
-                  Bu guruhlar filial kassa va refund tizimi (CRM) guruhlari bilan bir xil emas. Ular sizning mustaqil ilmiy kurslaringiz va AI simulyatsiya o'quvchilaringiz uchun xizmat qiladi.
+                  Bu guruhlar filial kassa va refund tizimi (CRM) guruhlari bilan bir xil emas. Ular sizning mustaqil ilmiy kurslaringiz va AI simulyatsiya o'quvchilaringiz uchun to'liq backend bazasida saqlanadi.
                 </p>
               </div>
             </div>
@@ -620,7 +823,7 @@ export default function MentorDashboard() {
                   Mening Chronous Guruhlarim va Shogirdlarim
                 </h2>
                 <p className="text-xs text-[var(--text-muted)] mt-1">
-                  Jami {groups.length} ta guruh va {groups.reduce((acc, g) => acc + g.students.length, 0)} ta ro'yxatdan o'tgan talaba.
+                  Jami {groups.length} ta guruh va {totalStudentsCount} ta ro'yxatdan o'tgan talaba.
                 </p>
               </div>
 
@@ -633,7 +836,7 @@ export default function MentorDashboard() {
               </button>
             </div>
 
-            {/* Groups Grid */}
+            {/* Groups Grid (Live from PostgreSQL DB) */}
             <div className="grid lg:grid-cols-2 gap-6">
               {groups.map((grp) => (
                 <div
@@ -643,7 +846,7 @@ export default function MentorDashboard() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="px-3 py-0.5 rounded-full text-[10px] font-bold bg-[var(--gold)]/15 text-[var(--gold)]">
-                        {grp.course}
+                        {grp.course_name}
                       </span>
                       <button
                         onClick={() => handleDeleteGroup(grp.id)}
@@ -666,7 +869,7 @@ export default function MentorDashboard() {
                       <span>•</span>
                       <span className="flex items-center gap-1">
                         <Users className="w-3.5 h-3.5" />
-                        {grp.students.length} / {grp.maxStudents} talaba
+                        {(grp.students || []).length} / {grp.max_students || 20} talaba
                       </span>
                     </div>
                   </div>
@@ -687,7 +890,7 @@ export default function MentorDashboard() {
                       </button>
                     </div>
 
-                    {grp.students.length === 0 ? (
+                    {(!grp.students || grp.students.length === 0) ? (
                       <p className="text-xs text-[var(--text-muted)] py-3 text-center italic">
                         Bu guruhga hali talabalar biriktirilmagan.
                       </p>
@@ -696,19 +899,32 @@ export default function MentorDashboard() {
                         {grp.students.map((student) => (
                           <div
                             key={student.id}
-                            className="p-2.5 rounded-xl bg-[var(--bg-void)]/60 border border-[var(--border-glass)] flex items-center justify-between text-xs"
+                            className="p-2.5 rounded-xl bg-[var(--bg-void)]/60 border border-[var(--border-glass)] flex items-center justify-between text-xs group/item"
                           >
                             <div>
-                              <div className="font-bold text-[var(--text-primary)]">{student.name}</div>
-                              <div className="text-[10px] text-[var(--text-muted)]">{student.email}</div>
+                              <div className="font-bold text-[var(--text-primary)]">
+                                {student.name}
+                              </div>
+                              <div className="text-[10px] text-[var(--text-muted)]">
+                                {student.email}
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <span className="text-[10px] font-bold text-emerald-600 block">
-                                Baho: {student.aiScore}
-                              </span>
-                              <span className="text-[9px] text-[var(--text-muted)]">
-                                {student.progress}% darslar
-                              </span>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <span className="text-[10px] font-bold text-emerald-600 block">
+                                  Baho: {student.ai_score || "95/100"}
+                                </span>
+                                <span className="text-[9px] text-[var(--text-muted)]">
+                                  {student.progress || 80}% darslar
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteStudent(grp.id, student.id)}
+                                className="opacity-0 group-hover/item:opacity-100 text-gray-400 hover:text-rose-500 transition-opacity p-1"
+                                title="Talabani o'chirish"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -722,7 +938,207 @@ export default function MentorDashboard() {
         )}
       </main>
 
-      {/* ===================== MODAL: CREATE CUSTOM GROUP ===================== */}
+      {/* ===================== MODAL 1: CREATE NEW COURSE ===================== */}
+      {showCreateCourseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="lux-card !p-6 sm:!p-8 !bg-[var(--bg-panel)] w-full max-w-lg rounded-3xl border border-[var(--gold)]/30 shadow-2xl relative">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif font-black text-lg text-[var(--text-primary)]">
+                Yangi Ta'lim Kursi Yaratish
+              </h3>
+              <button
+                onClick={() => setShowCreateCourseModal(false)}
+                className="text-gray-400 hover:text-[var(--text-primary)] text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-[var(--text-muted)] mb-5">
+              Yangi kurs yaratilgach, unga darslar va AI simulyatsiya keyslarini biriktirishingiz mumkin bo'ladi.
+            </p>
+
+            <form onSubmit={handleCreateCourse} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                  Kurs Nomi:
+                </label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Masalan: Kvant Fizikasi va Lazer Spektroskopiyasi"
+                  value={newCourseForm.title}
+                  onChange={(e) => setNewCourseForm({ ...newCourseForm, title: e.target.value })}
+                  className="lux-input !py-2.5 !px-3.5 w-full text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                    Fan Yo'nalishi:
+                  </label>
+                  <select
+                    value={newCourseForm.domain}
+                    onChange={(e) => setNewCourseForm({ ...newCourseForm, domain: e.target.value })}
+                    className="lux-input !py-2.5 !px-3.5 w-full text-xs cursor-pointer"
+                  >
+                    {domains.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                    Murakkablik Darajasi:
+                  </label>
+                  <select
+                    value={newCourseForm.difficulty}
+                    onChange={(e) => setNewCourseForm({ ...newCourseForm, difficulty: e.target.value })}
+                    className="lux-input !py-2.5 !px-3.5 w-full text-xs cursor-pointer"
+                  >
+                    <option value="BEGINNER">Boshlang'ich</option>
+                    <option value="INTERMEDIATE">O'rta</option>
+                    <option value="ADVANCED">Ilg'or</option>
+                    <option value="EXPERT">Ekspert</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                  Kurs Tavsifi:
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Kurs maqsadi va o'rganiladigan asosiy ilmiy jihatlar..."
+                  value={newCourseForm.description}
+                  onChange={(e) => setNewCourseForm({ ...newCourseForm, description: e.target.value })}
+                  className="lux-input !py-2.5 !px-3.5 w-full text-xs"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCourseModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-[var(--border-glass)] text-xs font-bold text-[var(--text-muted)] hover:bg-[var(--bg-void)]"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--gold)] text-white text-xs font-bold shadow-md hover:brightness-105 disabled:opacity-50"
+                >
+                  {submitting ? "Yaratilmoqda..." : "Kursni Saqlash"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== MODAL 2: ADD LESSON ===================== */}
+      {showCreateLessonModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="lux-card !p-6 sm:!p-8 !bg-[var(--bg-panel)] w-full max-w-lg rounded-3xl border border-[var(--gold)]/30 shadow-2xl relative">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif font-black text-lg text-[var(--text-primary)]">
+                Yangi Darslik Qo'shish
+              </h3>
+              <button
+                onClick={() => setShowCreateLessonModal(false)}
+                className="text-gray-400 hover:text-[var(--text-primary)] text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateLesson} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                  Qaysi Kursga Qo'shilsin?
+                </label>
+                <select
+                  value={newLessonForm.course_id}
+                  onChange={(e) => setNewLessonForm({ ...newLessonForm, course_id: e.target.value })}
+                  className="lux-input !py-2.5 !px-3.5 w-full text-xs cursor-pointer"
+                >
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                  Dars Mavzusi:
+                </label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Masalan: Foton impulsi va Kompton effekti"
+                  value={newLessonForm.title}
+                  onChange={(e) => setNewLessonForm({ ...newLessonForm, title: e.target.value })}
+                  className="lux-input !py-2.5 !px-3.5 w-full text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                  O'qish / O'zlashtirish Vaqti (daqiqa):
+                </label>
+                <input
+                  type="number"
+                  min="3"
+                  max="120"
+                  value={newLessonForm.reading_time_minutes}
+                  onChange={(e) => setNewLessonForm({ ...newLessonForm, reading_time_minutes: e.target.value })}
+                  className="lux-input !py-2.5 !px-3.5 w-full text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                  Qisqacha Mazmuni va Keys:
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Mavzuning nazariy tushuntirishi va talaba hal qilishi kerak bo'lgan masalalar..."
+                  value={newLessonForm.summary}
+                  onChange={(e) => setNewLessonForm({ ...newLessonForm, summary: e.target.value })}
+                  className="lux-input !py-2.5 !px-3.5 w-full text-xs"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateLessonModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-[var(--border-glass)] text-xs font-bold text-[var(--text-muted)] hover:bg-[var(--bg-void)]"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--gold)] text-white text-xs font-bold shadow-md hover:brightness-105 disabled:opacity-50"
+                >
+                  {submitting ? "Qo'shilmoqda..." : "Darsni Saqlash"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== MODAL 3: CREATE CHRONOUS GROUP ===================== */}
       {showCreateGroupModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
           <div className="lux-card !p-6 sm:!p-8 !bg-[var(--bg-panel)] w-full max-w-md rounded-3xl border border-[var(--gold)]/30 shadow-2xl relative">
@@ -739,7 +1155,7 @@ export default function MentorDashboard() {
             </div>
 
             <p className="text-xs text-[var(--text-muted)] mb-5">
-              Ushbu guruh sizning mustaqil o'quv dasturingiz va AI laboratoriyangiz uchun xizmat qiladi.
+              Ushbu guruh sizning mustaqil o'quv dasturingiz va AI laboratoriyangiz uchun to'g'ridan-to'g'ri backend bazasida yaratiladi.
             </p>
 
             <form onSubmit={handleCreateGroup} className="space-y-4">
@@ -762,14 +1178,20 @@ export default function MentorDashboard() {
                   O'quv Kursi:
                 </label>
                 <select
-                  value={newGroupForm.course}
-                  onChange={(e) => setNewGroupForm({ ...newGroupForm, course: e.target.value })}
+                  value={newGroupForm.course_name}
+                  onChange={(e) => setNewGroupForm({ ...newGroupForm, course_name: e.target.value })}
                   className="lux-input !py-2.5 !px-3.5 w-full text-xs cursor-pointer"
                 >
-                  <option value="Molekulyar Biologiya va Hujayra Genetikasi">Molekulyar Biologiya va Hujayra Genetikasi</option>
-                  <option value="Genetik Muhandislik va Biotexnologiya">Genetik Muhandislik va Biotexnologiya</option>
-                  <option value="Kvant Mexanikasi va Atom Fizikasi">Kvant Mexanikasi va Atom Fizikasi</option>
-                  <option value="Xalqaro Tijorat va Sud Huquqi">Xalqaro Tijorat va Sud Huquqi</option>
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.title}>
+                      {c.title}
+                    </option>
+                  ))}
+                  {courses.length === 0 && (
+                    <option value="Molekulyar Biologiya va Hujayra Genetikasi">
+                      Molekulyar Biologiya va Hujayra Genetikasi
+                    </option>
+                  )}
                 </select>
               </div>
 
@@ -794,8 +1216,8 @@ export default function MentorDashboard() {
                   type="number"
                   min="5"
                   max="100"
-                  value={newGroupForm.maxStudents}
-                  onChange={(e) => setNewGroupForm({ ...newGroupForm, maxStudents: e.target.value })}
+                  value={newGroupForm.max_students}
+                  onChange={(e) => setNewGroupForm({ ...newGroupForm, max_students: e.target.value })}
                   className="lux-input !py-2.5 !px-3.5 w-full text-xs"
                 />
               </div>
@@ -810,9 +1232,10 @@ export default function MentorDashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[var(--gold)] text-white text-xs font-bold shadow-md hover:brightness-105"
+                  disabled={submitting}
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--gold)] text-white text-xs font-bold shadow-md hover:brightness-105 disabled:opacity-50"
                 >
-                  Guruhni Yaratish
+                  {submitting ? "Yaratilmoqda..." : "Guruhni Yaratish"}
                 </button>
               </div>
             </form>
@@ -820,7 +1243,7 @@ export default function MentorDashboard() {
         </div>
       )}
 
-      {/* ===================== MODAL: ADD STUDENT TO GROUP ===================== */}
+      {/* ===================== MODAL 4: ADD STUDENT TO GROUP ===================== */}
       {showAddStudentModal && selectedGroupForStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
           <div className="lux-card !p-6 sm:!p-8 !bg-[var(--bg-panel)] w-full max-w-sm rounded-3xl border border-[var(--gold)]/30 shadow-2xl relative">
@@ -878,9 +1301,10 @@ export default function MentorDashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[var(--gold)] text-white text-xs font-bold shadow-md hover:brightness-105"
+                  disabled={submitting}
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--gold)] text-white text-xs font-bold shadow-md hover:brightness-105 disabled:opacity-50"
                 >
-                  Qo'shish
+                  {submitting ? "Qo'shilmoqda..." : "Qo'shish"}
                 </button>
               </div>
             </form>

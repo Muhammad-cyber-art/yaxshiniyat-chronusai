@@ -1,11 +1,11 @@
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .models import Branch
 from .serializers import BranchSerializer
-from .permissions import IsSuperAdminOnly  # Biz yozgan qat'iy permission
-from rest_framework.permissions import IsAuthenticated
+
+
 class BranchViewSet(viewsets.ModelViewSet):
-    # Super Admin hammasini ko'rishi kerak, shuning uchun oddiy queryset yetarli
-    queryset = Branch.objects.all()
+    queryset = Branch.objects.filter(is_active=True).order_by("id")
     serializer_class = BranchSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     pagination_class = None

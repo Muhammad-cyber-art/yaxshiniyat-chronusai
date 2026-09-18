@@ -68,8 +68,12 @@ export default function SimulationPage() {
         setCases(list);
 
         const preselectedId = searchParams.get('caseId');
+        const preselectedCourseId = searchParams.get('courseId');
         if (preselectedId) {
           const found = list.find((c) => c.id === preselectedId || c.slug === preselectedId);
+          if (found) setSelectedCase(found);
+        } else if (preselectedCourseId) {
+          const found = list.find((c) => c.course === preselectedCourseId || String(c.course_id) === String(preselectedCourseId));
           if (found) setSelectedCase(found);
         }
       } catch (err) {

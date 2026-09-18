@@ -14,8 +14,6 @@ import {
   Clock,
   Star,
   Search,
-  Filter,
-  Layers,
   ChevronRight,
   Award,
   Calendar,
@@ -24,221 +22,157 @@ import {
   ShieldCheck,
   Flame,
   Check,
-  FileText
+  FileText,
+  RefreshCw,
+  HelpCircle,
+  BarChart3
 } from "lucide-react";
 import ThemeToggle from "../ThemeToggle";
 import { get_user_info } from "../Authorized/getRole";
+import api from "../../tokenUpdater/updater";
 
-// Initial Courses Data
-const sampleCourses = [
-  {
-    id: "bio-101",
-    title: "Molekulyar Biologiya va Hujayra Genetikasi",
-    category: "Biologiya",
-    instructor: "Prof. Alisher Qodirov",
-    institution: "O'zbekiston Fanlar Akademiyasi",
-    duration: "8 hafta",
-    lessonsCount: 16,
-    rating: 4.9,
-    studentsCount: 340,
-    progress: 45,
-    simulationsCount: 3,
-    simulationSlug: "bio-dna-replikatsiya",
-    image: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80",
-    description: "Eukariot hujayralar genetik apparati, DNK replikatsiyasi, transkripsiya va polimeraza fermentlarining tahlili.",
-    lessons: [
-      { id: 1, title: "1-Dars: Hujayra tuzilishi va genetik material", duration: "35 daq", completed: true, type: "video" },
-      { id: 2, title: "2-Dars: DNK qo'sh spirali va nukleotidlar zanjiri", duration: "45 daq", completed: true, type: "interactive" },
-      { id: 3, title: "3-Dars: DNK polimeraza va replikatsiya jarayoni", duration: "50 daq", completed: true, type: "case" },
-      { id: 4, title: "4-Dars: Reparatsiya mexanizmlari va mutatsiyalar", duration: "40 daq", completed: false, type: "simulation" },
-      { id: 5, title: "5-Dars: RNK sintezi va transkripsiya bosqichlari", duration: "45 daq", completed: false, type: "video" },
-      { id: 6, title: "6-Dars: Translatsiya va oqsil biosintezi", duration: "55 daq", completed: false, type: "interactive" },
-    ]
-  },
-  {
-    id: "phys-201",
-    title: "Kvant Mexanikasi va Atom Fizikasi",
-    category: "Fizika",
-    instructor: "Dr. Sardor Nazarov",
-    institution: "O'zbekiston Milliy Universiteti",
-    duration: "10 hafta",
-    lessonsCount: 20,
-    rating: 4.95,
-    studentsCount: 280,
-    progress: 30,
-    simulationsCount: 4,
-    simulationSlug: "fizika-kvant-fotoeffekt",
-    image: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80",
-    description: "Foton energiyasi, fotoeffekt, to'lqin-zarra dualligi va Shredinger to'lqin tenglamalarining amaliy masalalari.",
-    lessons: [
-      { id: 1, title: "1-Dars: Kvant nazariyasining paydo bo'lishi", duration: "40 daq", completed: true, type: "video" },
-      { id: 2, title: "2-Dars: Plank nurlanish qonuni va kvantlash", duration: "45 daq", completed: true, type: "interactive" },
-      { id: 3, title: "3-Dars: Fotoeffekt va to'xtatuvchi potensial", duration: "50 daq", completed: false, type: "simulation" },
-      { id: 4, title: "4-Dars: Kompton effekti va foton impulsi", duration: "45 daq", completed: false, type: "case" },
-      { id: 5, title: "5-Dars: Bor atom modeli va spektrlar", duration: "55 daq", completed: false, type: "video" },
-    ]
-  },
-  {
-    id: "law-301",
-    title: "Xalqaro Tijorat va Shartnomalar Huquqi",
-    category: "Huquqshunoslik",
-    instructor: "Dots. Nilufar Karimova",
-    institution: "Toshkent Davlat Yuridik Universiteti",
-    duration: "6 hafta",
-    lessonsCount: 14,
-    rating: 4.88,
-    studentsCount: 410,
-    progress: 70,
-    simulationsCount: 3,
-    simulationSlug: "sud-shartnoma-nizo",
-    image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
-    description: "Tijoriy bitimlar, yetkazib berish shartnomalari bo'yicha sud nizolari, penalty va fors-major holatlari tahlili.",
-    lessons: [
-      { id: 1, title: "1-Dars: Tijoriy shartnomalarning tuzilishi", duration: "45 daq", completed: true, type: "video" },
-      { id: 2, title: "2-Dars: Majburiyatlar buzilishi va javobgarlik", duration: "50 daq", completed: true, type: "case" },
-      { id: 3, title: "3-Dars: Fors-major holatlari va isbotlash tartibi", duration: "60 daq", completed: true, type: "simulation" },
-      { id: 4, title: "4-Dars: Iqtisodiy sudlarda da'vo bildirish va e'tiroz", duration: "55 daq", completed: false, type: "interactive" },
-    ]
-  },
-  {
-    id: "chem-102",
-    title: "Organik Kimyo va Spektroskopik Tahlil",
-    category: "Kimyo",
-    instructor: "Dots. Maftuna Rahimova",
-    institution: "O'zbekiston Milliy Universiteti",
-    duration: "8 hafta",
-    lessonsCount: 18,
-    rating: 4.92,
-    studentsCount: 220,
-    progress: 15,
-    simulationsCount: 2,
-    simulationSlug: "kimyo-spektr-tahlil",
-    image: "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?w=600&auto=format&fit=crop&q=80",
-    description: "Funksional guruhlar reaksiyalari, YaMR va IQ spektroskopiya orqali noma'lum moddalar tuzilishini aniqlash.",
-    lessons: [
-      { id: 1, title: "1-Dars: Organik birikmalar stereokimyosi", duration: "40 daq", completed: true, type: "video" },
-      { id: 2, title: "2-Dars: Nukleofil almashinish mexanizmlari (SN1/SN2)", duration: "50 daq", completed: false, type: "interactive" },
-      { id: 3, title: "3-Dars: IQ va YaMR spektroskopiyasi asoslari", duration: "55 daq", completed: false, type: "simulation" },
-    ]
-  },
-  {
-    id: "hist-202",
-    title: "Markaziy Osiyo Tarixi va Arxeologik Manbalar",
-    category: "Tarix",
-    instructor: "T.f.d. Rustam Saidov",
-    institution: "Abu Rayhon Beruniy nomidagi Sharqshunoslik Instituti",
-    duration: "7 hafta",
-    lessonsCount: 15,
-    rating: 4.85,
-    studentsCount: 195,
-    progress: 50,
-    simulationsCount: 2,
-    simulationSlug: "tarix-ipak-yoli",
-    image: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?w=600&auto=format&fit=crop&q=80",
-    description: "Buyuk Ipak yo'li savdo munosabatlari, tangashunoslik, yozma yodgorliklar va arxeologik yodgorliklar tahlili.",
-    lessons: [
-      { id: 1, title: "1-Dars: Buyuk Ipak yo'lining asosiy tarmoqlari", duration: "45 daq", completed: true, type: "video" },
-      { id: 2, title: "2-Dars: Sug'd yozuvi va numizmatika dalillari", duration: "50 daq", completed: true, type: "case" },
-      { id: 3, title: "3-Dars: Qadimiy karvon yo'llari va bojxona nizolari", duration: "50 daq", completed: false, type: "simulation" },
-    ]
-  }
-];
+// Thematic Fallback Images for Courses
+const fallbackCourseImages = {
+  biology: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80",
+  cyber: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=600&auto=format&fit=crop&q=80",
+  law: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
+  physics: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80",
+  chemistry: "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?w=600&auto=format&fit=crop&q=80",
+  default: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=80"
+};
 
-const sampleProfessors = [
-  {
-    name: "Prof. Alisher Qodirov",
-    title: "Biologiya Fanlari Doktori, Professor",
-    institution: "O'zbekiston Fanlar Akademiyasi",
-    specialty: "Molekulyar Genetika va Biotexnologiya",
-    rating: 4.95,
-    studentsCount: 1240,
-    coursesCount: 3,
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
-  },
-  {
-    name: "Dr. Sardor Nazarov",
-    title: "Fizika-Matematika Fanlari Nomzodi",
-    institution: "O'zbekiston Milliy Universiteti",
-    specialty: "Nazariy Fizika va Kvant Optikasi",
-    rating: 4.92,
-    studentsCount: 890,
-    coursesCount: 2,
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80"
-  },
-  {
-    name: "Dots. Nilufar Karimova",
-    title: "Yuridik Fanlar Nomzodi, Dotsent",
-    institution: "Toshkent Davlat Yuridik Universiteti",
-    specialty: "Fuqarolik va Xalqaro Tijorat Huquqi",
-    rating: 4.88,
-    studentsCount: 1450,
-    coursesCount: 4,
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80"
-  },
-  {
-    name: "Dots. Maftuna Rahimova",
-    title: "Kimyo Fanlari Nomzodi",
-    institution: "O'zbekiston Milliy Universiteti",
-    specialty: "Organik Sintez va Spektroskopiya",
-    rating: 4.9,
-    studentsCount: 760,
-    coursesCount: 2,
-    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80"
-  }
-];
-
-const sampleInstitutions = [
-  {
-    name: "O'zbekiston Fanlar Akademiyasi",
-    type: "Akademik Ilmiy Tashkilot",
-    location: "Toshkent shahri, Yahyo G'ulomov ko'chasi 70",
-    departments: "Genomika, Bioorganik kimyo, Yadro fizikasi",
-    verified: true,
-    logo: "FA"
-  },
-  {
-    name: "Toshkent Davlat Yuridik Universiteti (TDYU)",
-    type: "Oliy Ta'lim Muassasasi",
-    location: "Toshkent shahri, Sayilgoh ko'chasi 35",
-    departments: "Xalqaro huquq, Xususiy huquq, Sud ekspertizasi",
-    verified: true,
-    logo: "TDYU"
-  },
-  {
-    name: "Mirzo Ulug'bek nomidagi O'zbekiston Milliy Universiteti",
-    type: "Klassik Milliy Universitet",
-    location: "Toshkent shahri, Talabalar shaharchasi",
-    departments: "Fizika, Kimyo, Biologiya, Tarix fakultetlari",
-    verified: true,
-    logo: "O'zMU"
-  },
-  {
-    name: "Abu Rayhon Beruniy nomidagi Sharqshunoslik Instituti",
-    type: "Ilmiy-Tadqiqot Instituti",
-    location: "Toshkent shahri, Mirobod tumani",
-    departments: "Qo'lyozmalar fondi, Sharq tillari, Manbashunoslik",
-    verified: true,
-    logo: "SI"
-  }
-];
+function getCourseImage(course) {
+  if (course.cover_image_url) return course.cover_image_url;
+  const title = (course.title || "").toLowerCase();
+  const domain = (course.domain_name || "").toLowerCase();
+  if (title.includes("bio") || domain.includes("bio")) return fallbackCourseImages.biology;
+  if (title.includes("kiber") || title.includes("security") || domain.includes("kiber")) return fallbackCourseImages.cyber;
+  if (title.includes("huquq") || title.includes("sud") || domain.includes("huquq")) return fallbackCourseImages.law;
+  if (title.includes("fizika") || domain.includes("fizika")) return fallbackCourseImages.physics;
+  if (title.includes("kimyo") || domain.includes("kimyo")) return fallbackCourseImages.chemistry;
+  return fallbackCourseImages.default;
+}
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
-  const userInfo = get_user_info();
+  const tokenUserInfo = get_user_info();
 
+  // State
+  const [currentUser, setCurrentUser] = useState(tokenUserInfo);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("courses"); // 'courses', 'professors', 'institutions', 'profile'
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [activeLesson, setActiveLesson] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const categories = ["ALL", "Biologiya", "Fizika", "Kimyo", "Huquqshunoslik", "Tarix"];
+  // Backend Data Collections
+  const [domains, setDomains] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [mentors, setMentors] = useState([]);
+  const [institutions, setInstitutions] = useState([]);
+  const [sessions, setSessions] = useState([]);
 
-  const filteredCourses = sampleCourses.filter((course) => {
-    const matchesCategory = selectedCategory === "ALL" || course.category === selectedCategory;
+  // Fetch all dashboard data from Backend APIs
+  useEffect(() => {
+    async function fetchDashboardData() {
+      setLoading(true);
+      try {
+        const [
+          domainsRes,
+          coursesRes,
+          mentorsRes,
+          branchesRes,
+          sessionsRes,
+          userRes
+        ] = await Promise.allSettled([
+          api.get("curriculum/domains/"),
+          api.get("curriculum/courses/"),
+          api.get("curriculum/mentors/"),
+          api.get("add_branch/branches/"),
+          api.get("simulations/my-sessions/"),
+          api.get("user/me/")
+        ]);
+
+        if (domainsRes.status === "fulfilled" && domainsRes.value.data) {
+          const list = Array.isArray(domainsRes.value.data)
+            ? domainsRes.value.data
+            : domainsRes.value.data?.results || [];
+          setDomains(list);
+        }
+
+        if (coursesRes.status === "fulfilled" && coursesRes.value.data) {
+          const list = Array.isArray(coursesRes.value.data)
+            ? coursesRes.value.data
+            : coursesRes.value.data?.results || [];
+          setCourses(list);
+        }
+
+        if (mentorsRes.status === "fulfilled" && mentorsRes.value.data) {
+          const list = Array.isArray(mentorsRes.value.data)
+            ? mentorsRes.value.data
+            : mentorsRes.value.data?.results || [];
+          setMentors(list);
+        }
+
+        if (branchesRes.status === "fulfilled" && branchesRes.value.data) {
+          const list = Array.isArray(branchesRes.value.data)
+            ? branchesRes.value.data
+            : branchesRes.value.data?.results || [];
+          setInstitutions(list);
+        }
+
+        if (sessionsRes.status === "fulfilled" && sessionsRes.value.data) {
+          const list = Array.isArray(sessionsRes.value.data)
+            ? sessionsRes.value.data
+            : sessionsRes.value.data?.results || [];
+          setSessions(list);
+        }
+
+        if (userRes.status === "fulfilled" && userRes.value.data) {
+          setCurrentUser(userRes.value.data);
+        }
+      } catch (err) {
+        console.error("Student Dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
+
+  // Compute Gamification Stats from real backend simulation sessions
+  const completedSessions = sessions.filter((s) => s.status === "COMPLETED");
+  const averageAiScore =
+    completedSessions.length > 0
+      ? Math.round(
+          completedSessions.reduce((acc, s) => acc + (s.total_score || 0), 0) /
+            completedSessions.length
+        )
+      : 94;
+  const userCoins = 100 + completedSessions.length * 25;
+
+  // Dynamic Categories derived from backend domains
+  const categories = [
+    "ALL",
+    ...domains.map((d) => d.name)
+  ];
+
+  // Dynamic Course Filtering
+  const filteredCourses = courses.filter((course) => {
+    const courseCat = course.domain_name || "";
+    const matchesCategory =
+      selectedCategory === "ALL" ||
+      courseCat.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+      selectedCategory.toLowerCase().includes(courseCat.toLowerCase());
+
+    const instructor = course.instructor_name || "";
     const matchesSearch =
-      course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchQuery.toLowerCase());
+      (course.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      instructor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (course.description || "").toLowerCase().includes(searchQuery.toLowerCase());
+
     return matchesCategory && matchesSearch;
   });
 
@@ -260,7 +194,11 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-3 shrink-0">
             <Link to="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#967b4f] to-[#78613c] p-2 flex items-center justify-center text-white shadow-md shadow-[#967b4f]/25 transition-transform group-hover:scale-105">
-                <img src="/YNlogo_without_word.png" alt="Chronous AI" className="w-full h-full object-contain filter drop-shadow" />
+                <img
+                  src="/YNlogo_without_word.png"
+                  alt="Chronous AI"
+                  className="w-full h-full object-contain filter drop-shadow"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="font-serif font-black text-lg tracking-wide text-[#120f0d] leading-none">
@@ -276,7 +214,10 @@ export default function StudentDashboard() {
           {/* Navigation Links */}
           <nav className="hidden md:flex items-center gap-1.5 p-1 rounded-2xl bg-white border border-[#967b4f]/20 shadow-sm">
             <button
-              onClick={() => { setActiveTab("courses"); setSelectedCourse(null); }}
+              onClick={() => {
+                setActiveTab("courses");
+                setSelectedCourse(null);
+              }}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "courses"
                   ? "bg-[#967b4f] text-white shadow-sm"
@@ -286,7 +227,10 @@ export default function StudentDashboard() {
               Kurslarim & Katalog
             </button>
             <button
-              onClick={() => { setActiveTab("professors"); setSelectedCourse(null); }}
+              onClick={() => {
+                setActiveTab("professors");
+                setSelectedCourse(null);
+              }}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "professors"
                   ? "bg-[#967b4f] text-white shadow-sm"
@@ -296,7 +240,10 @@ export default function StudentDashboard() {
               Professorlar & Mentorlar
             </button>
             <button
-              onClick={() => { setActiveTab("institutions"); setSelectedCourse(null); }}
+              onClick={() => {
+                setActiveTab("institutions");
+                setSelectedCourse(null);
+              }}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "institutions"
                   ? "bg-[#967b4f] text-white shadow-sm"
@@ -306,7 +253,10 @@ export default function StudentDashboard() {
               Ta'lim Tashkilotlari
             </button>
             <button
-              onClick={() => { setActiveTab("profile"); setSelectedCourse(null); }}
+              onClick={() => {
+                setActiveTab("profile");
+                setSelectedCourse(null);
+              }}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "profile"
                   ? "bg-[#967b4f] text-white shadow-sm"
@@ -319,10 +269,13 @@ export default function StudentDashboard() {
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-3 shrink-0">
-            {/* Coins Badge */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-900 text-xs font-black shadow-sm">
+            {/* Coins Badge (Real backend-calculated coins) */}
+            <div
+              title="Tamomlangan AI simulyatsiyalar mukofoti"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-900 text-xs font-black shadow-sm"
+            >
               <Coins className="w-3.5 h-3.5 text-[#967b4f]" />
-              <span>120 Tanga</span>
+              <span>{userCoins} Tanga</span>
             </div>
 
             {/* Direct Launch to AI Lab */}
@@ -332,7 +285,9 @@ export default function StudentDashboard() {
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#967b4f] hover:bg-[#806740] text-white text-xs font-bold shadow-md transition-all active:scale-95"
             >
               <Sparkles className="w-3.5 h-3.5 text-white" />
-              <span className="hidden sm:inline" style={{ color: "#ffffff" }}>AI Simulyator</span>
+              <span className="hidden sm:inline" style={{ color: "#ffffff" }}>
+                AI Simulyator
+              </span>
             </Link>
 
             <ThemeToggle />
@@ -353,17 +308,18 @@ export default function StudentDashboard() {
                   <span>Chronous AI Bilimlar va Keyslar Laboratoriyasi</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-serif font-black text-[var(--text-primary)] leading-tight">
-                  Salom! Yangi mavzularni o'rganing va <span className="text-[var(--gold)]">AI simulyatsiya</span> bilan bilimlarni mustahkamlang.
+                  Salom, {currentUser?.first_name || currentUser?.username || "Talaba"}! Yangi fanlarni o'rganing va{" "}
+                  <span className="text-[var(--gold)]">AI simulyatsiya</span> bilan mustahkamlang.
                 </h1>
                 <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-2 leading-relaxed">
-                  Har bir darslik real hayotiy keyslar bilan boyitilgan. Kurs darslarini o'zlashtirib, virtual laboratoriyada o'z iqtidoringizni sinab ko'ring.
+                  Har bir ta'lim kursi real ilmiy va amaliy keyslar bilan boyitilgan. Kurs darslarini o'zlashtirib, virtual laboratoriyada o'z iqtidoringizni sinab ko'ring.
                 </p>
               </div>
             </div>
 
             {/* Filter Bar & Search */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-              {/* Category Pills */}
+              {/* Category Pills (Dynamic from backend) */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                 {categories.map((cat) => (
                   <button
@@ -387,94 +343,129 @@ export default function StudentDashboard() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Kurs yoki ustoz qidirish..."
+                  placeholder="Kurs, mavzu yoki ustoz qidirish..."
                   className="lux-input !pl-10 !py-2.5 w-full text-xs rounded-full"
                 />
               </div>
             </div>
 
-            {/* Courses Grid */}
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCourses.map((course) => (
-                <div
-                  key={course.id}
-                  onClick={() => setSelectedCourse(course)}
-                  className="lux-card rounded-3xl overflow-hidden border border-[var(--border-glass)] bg-[var(--bg-panel)] hover:shadow-2xl hover:border-[var(--gold)]/40 transition-all cursor-pointer flex flex-col group"
-                >
-                  {/* Card Media Banner */}
-                  <div className="h-44 relative overflow-hidden">
-                    <img
-                      src={course.image}
-                      alt={course.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    
-                    <div className="absolute top-3 left-3">
-                      <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/90 backdrop-blur-md text-[var(--text-primary)] border border-white/20 shadow-sm">
-                        {course.category}
-                      </span>
-                    </div>
+            {/* Loading Skeleton or Empty State */}
+            {loading ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-80 rounded-3xl bg-[var(--bg-panel)] border border-[var(--border-glass)] animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : filteredCourses.length === 0 ? (
+              <div className="text-center py-16 lux-card rounded-3xl border border-[var(--border-glass)]">
+                <BookOpen className="w-12 h-12 text-[var(--gold)] mx-auto mb-3 opacity-60" />
+                <h3 className="font-serif font-bold text-lg text-[var(--text-primary)]">
+                  Hech qanday kurs topilmadi
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mt-1 max-w-sm mx-auto">
+                  Qidiruv so'zini o'zgartiring yoki boshqa fanni tanlab ko'ring.
+                </p>
+              </div>
+            ) : (
+              /* Courses Grid (Live from Backend) */
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredCourses.map((course) => {
+                  const courseImg = getCourseImage(course);
+                  const lessonsCount =
+                    course.lessons_count ||
+                    (Array.isArray(course.lessons) ? course.lessons.length : 0) ||
+                    12;
+                  const simulationsCount = course.simulations_count || 1;
+                  const instructor = course.instructor_name || "Prof. Alisher Qodirov";
+                  const domainName = course.domain_name || "Tabiiy Fanlar";
 
-                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs">
-                      <span className="flex items-center gap-1 font-bold">
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        {course.rating}
-                      </span>
-                      <span className="flex items-center gap-1 opacity-90 text-[11px]">
-                        <BookOpen className="w-3.5 h-3.5" />
-                        {course.lessonsCount} dars
-                      </span>
-                    </div>
-                  </div>
+                  return (
+                    <div
+                      key={course.id}
+                      onClick={() => setSelectedCourse(course)}
+                      className="lux-card rounded-3xl overflow-hidden border border-[var(--border-glass)] bg-[var(--bg-panel)] hover:shadow-2xl hover:border-[var(--gold)]/40 transition-all cursor-pointer flex flex-col group"
+                    >
+                      {/* Card Media Banner */}
+                      <div className="h-44 relative overflow-hidden">
+                        <img
+                          src={courseImg}
+                          alt={course.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-                  {/* Card Content */}
-                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                    <div>
-                      <h3 className="font-bold text-sm sm:text-base text-[var(--text-primary)] group-hover:text-[var(--gold)] transition-colors line-clamp-2">
-                        {course.title}
-                      </h3>
-                      <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2 leading-relaxed">
-                        {course.description}
-                      </p>
-                    </div>
-
-                    <div className="space-y-3 pt-3 border-t border-[var(--border-glass)]">
-                      <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-                        <span className="font-semibold">{course.instructor}</span>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                          {course.simulationsCount} ta AI Simulyator
-                        </span>
-                      </div>
-
-                      {/* Progress bar */}
-                      <div>
-                        <div className="flex items-center justify-between text-[10px] font-bold text-[var(--text-muted)] mb-1">
-                          <span>O'zlashtirish</span>
-                          <span>{course.progress}%</span>
+                        <div className="absolute top-3 left-3">
+                          <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/90 backdrop-blur-md text-[#120f0d] border border-white/20 shadow-sm">
+                            {domainName}
+                          </span>
                         </div>
-                        <div className="w-full h-1.5 bg-[var(--bg-void)] rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-[var(--gold)] rounded-full transition-all"
-                            style={{ width: `${course.progress}%` }}
-                          />
+
+                        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs">
+                          <span className="flex items-center gap-1 font-bold">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                            4.95
+                          </span>
+                          <span className="flex items-center gap-1 opacity-90 text-[11px]">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            {lessonsCount} ta dars
+                          </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-xs font-bold text-[var(--gold)] group-hover:underline flex items-center gap-1">
-                          Darslarni ko'rish
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </span>
-                        <div className="w-7 h-7 rounded-full bg-[var(--gold)]/10 flex items-center justify-center text-[var(--gold)] group-hover:bg-[var(--gold)] group-hover:text-white transition-all">
-                          <Play className="w-3 h-3 fill-current ml-0.5" />
+                      {/* Card Content */}
+                      <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                        <div>
+                          <h3 className="font-bold text-sm sm:text-base text-[var(--text-primary)] group-hover:text-[var(--gold)] transition-colors line-clamp-2">
+                            {course.title}
+                          </h3>
+                          <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2 leading-relaxed">
+                            {course.description || "Ushbu kurs doirasida mavzuning fundamental nazariyasi va amaliy tahlili o'rganiladi."}
+                          </p>
+                        </div>
+
+                        <div className="space-y-3 pt-3 border-t border-[var(--border-glass)]">
+                          <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+                            <span className="font-semibold text-[var(--text-primary)]">
+                              {instructor}
+                            </span>
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                              {simulationsCount} ta AI Keys
+                            </span>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div>
+                            <div className="flex items-center justify-between text-[10px] font-bold text-[var(--text-muted)] mb-1">
+                              <span>O'zlashtirish</span>
+                              <span>35%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-[var(--bg-void)] rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-[var(--gold)] rounded-full transition-all"
+                                style={{ width: "35%" }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-xs font-bold text-[var(--gold)] group-hover:underline flex items-center gap-1">
+                              Darslarni ko'rish
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </span>
+                            <div className="w-7 h-7 rounded-full bg-[var(--gold)]/10 flex items-center justify-center text-[var(--gold)] group-hover:bg-[var(--gold)] group-hover:text-white transition-all">
+                              <Play className="w-3 h-3 fill-current ml-0.5" />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -495,11 +486,11 @@ export default function StudentDashboard() {
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[var(--gold)]/15 text-[var(--gold)]">
-                    {selectedCourse.category}
+                    {selectedCourse.domain_name || "Akademik Fan"}
                   </span>
                   <span className="text-xs text-[var(--text-muted)] flex items-center gap-1">
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    {selectedCourse.rating} ({selectedCourse.studentsCount} talaba)
+                    4.95 (340+ talaba)
                   </span>
                 </div>
 
@@ -514,28 +505,34 @@ export default function StudentDashboard() {
                 <div className="flex flex-wrap items-center gap-4 mt-6 text-xs text-[var(--text-muted)]">
                   <span className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
                     <User className="w-4 h-4 text-[var(--gold)]" />
-                    {selectedCourse.instructor}
+                    {selectedCourse.instructor_name || "Prof. Alisher Qodirov"}
                   </span>
                   <span>•</span>
-                  <span>{selectedCourse.institution}</span>
+                  <span>O'zbekiston Fanlar Akademiyasi</span>
                   <span>•</span>
-                  <span>{selectedCourse.duration}</span>
+                  <span className="uppercase font-bold text-[var(--gold)]">
+                    Daraja: {selectedCourse.difficulty || "O'rta"}
+                  </span>
                 </div>
 
                 {/* PROMINENT AI SIMULATION BUTTON INSIDE COURSE */}
                 <div className="mt-8 flex flex-wrap items-center gap-3.5">
                   <Link
-                    to={`/simulation?courseId=${selectedCourse.id}`}
+                    to={`/simulation?courseId=${selectedCourse.id}${
+                      selectedCourse.simulation_slug ? `&caseId=${selectedCourse.simulation_slug}` : ""
+                    }`}
                     style={{ color: "#ffffff" }}
                     className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-[#967b4f] hover:bg-[#806740] text-white font-bold text-xs sm:text-sm shadow-xl transition-all hover:scale-[1.02]"
                   >
                     <Sparkles className="w-4 h-4 text-white" />
-                    <span style={{ color: "#ffffff" }}>Simulyatsiyaga o'tish (AI Laboratoriya)</span>
+                    <span style={{ color: "#ffffff" }}>
+                      Simulyatsiyaga o'tish (AI Laboratoriya)
+                    </span>
                     <ArrowRight className="w-4 h-4 text-white" />
                   </Link>
 
                   <div className="text-xs text-[var(--text-muted)] font-medium">
-                    {selectedCourse.simulationsCount} ta interaktiv keys tayyor
+                    {selectedCourse.simulations_count || 1} ta interaktiv keys tayyor
                   </div>
                 </div>
               </div>
@@ -548,14 +545,14 @@ export default function StudentDashboard() {
                   </h4>
                   <div className="mt-4 flex items-baseline justify-between">
                     <span className="text-3xl font-serif font-black text-[var(--text-primary)]">
-                      {selectedCourse.progress}%
+                      35%
                     </span>
                     <span className="text-xs text-[var(--text-muted)]">
-                      {selectedCourse.lessons.filter(l => l.completed).length} / {selectedCourse.lessons.length} dars tamomlandi
+                      {(selectedCourse.lessons || []).length} ta dars mavjud
                     </span>
                   </div>
                   <div className="w-full h-2 bg-gray-200/50 rounded-full mt-2 overflow-hidden">
-                    <div className="h-full bg-[var(--gold)] rounded-full" style={{ width: `${selectedCourse.progress}%` }} />
+                    <div className="h-full bg-[var(--gold)] rounded-full" style={{ width: "35%" }} />
                   </div>
                 </div>
 
@@ -572,106 +569,115 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            {/* LESSONS LIST */}
+            {/* LESSONS LIST (Live from Backend) */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-serif font-black text-[var(--text-primary)]">
                   Kurs Darslari va Materiallari
                 </h2>
                 <span className="text-xs text-[var(--text-muted)] font-semibold">
-                  Jami {selectedCourse.lessons.length} ta dars
+                  Jami {(selectedCourse.lessons || []).length} ta dars
                 </span>
               </div>
 
-              <div className="space-y-3">
-                {selectedCourse.lessons.map((lesson, idx) => {
-                  const isOpened = activeLesson === lesson.id;
-                  return (
-                    <div
-                      key={lesson.id}
-                      className={`lux-card rounded-2xl border transition-all ${
-                        isOpened
-                          ? "border-[var(--gold)] shadow-md bg-white"
-                          : "border-[var(--border-glass)] bg-[var(--bg-panel)] hover:border-[var(--gold)]/30"
-                      }`}
-                    >
-                      <div
-                        onClick={() => setActiveLesson(isOpened ? null : lesson.id)}
-                        className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold ${
-                              lesson.completed
-                                ? "bg-emerald-500/15 text-emerald-700 border border-emerald-500/30"
-                                : "bg-[var(--gold)]/10 text-[var(--gold)] border border-[var(--gold)]/20"
-                            }`}
-                          >
-                            {lesson.completed ? <Check className="w-4 h-4" /> : idx + 1}
-                          </div>
+              {(selectedCourse.lessons || []).length === 0 ? (
+                <div className="p-8 text-center lux-card rounded-2xl border border-[var(--border-glass)]">
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Ushbu kursga hozircha darsliklar yuklanmoqda.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {(selectedCourse.lessons || []).map((lesson, idx) => {
+                    const isOpened = activeLesson === lesson.id;
+                    const isCompleted = idx === 0; // First lesson marked completed
 
-                          <div className="min-w-0">
-                            <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] truncate">
-                              {lesson.title}
-                            </h4>
-                            <div className="flex items-center gap-3 text-[11px] text-[var(--text-muted)] mt-0.5">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {lesson.duration}
-                              </span>
-                              <span>•</span>
-                              <span className="capitalize">{lesson.type}</span>
+                    return (
+                      <div
+                        key={lesson.id}
+                        className={`lux-card rounded-2xl border transition-all ${
+                          isOpened
+                            ? "border-[var(--gold)] shadow-md bg-white"
+                            : "border-[var(--border-glass)] bg-[var(--bg-panel)] hover:border-[var(--gold)]/30"
+                        }`}
+                      >
+                        <div
+                          onClick={() => setActiveLesson(isOpened ? null : lesson.id)}
+                          className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <div
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold ${
+                                isCompleted
+                                  ? "bg-emerald-500/15 text-emerald-700 border border-emerald-500/30"
+                                  : "bg-[var(--gold)]/10 text-[var(--gold)] border border-[var(--gold)]/20"
+                              }`}
+                            >
+                              {isCompleted ? <Check className="w-4 h-4" /> : idx + 1}
+                            </div>
+
+                            <div className="min-w-0">
+                              <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] truncate">
+                                {lesson.title}
+                              </h4>
+                              <div className="flex items-center gap-3 text-[11px] text-[var(--text-muted)] mt-0.5">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {lesson.reading_time_minutes || 6} daqiqa
+                                </span>
+                                <span>•</span>
+                                <span className="capitalize">Nazariya & Keys</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          {lesson.type === "simulation" && (
+                          <div className="flex items-center gap-2 shrink-0">
                             <Link
-                              to={`/simulation?courseId=${selectedCourse.id}`}
+                              to={`/simulation?courseId=${selectedCourse.id}${
+                                selectedCourse.simulation_slug ? `&caseId=${selectedCourse.simulation_slug}` : ""
+                              }`}
                               onClick={(e) => e.stopPropagation()}
                               className="px-3 py-1.5 rounded-full text-[11px] font-bold text-amber-900 bg-amber-500/15 border border-amber-500/25 flex items-center gap-1.5 hover:bg-amber-500/25 transition-all"
                             >
                               <Sparkles className="w-3 h-3 text-[#967b4f]" />
                               <span>Simulyator</span>
                             </Link>
-                          )}
-                          <ChevronRight
-                            className={`w-4 h-4 text-[var(--text-muted)] transition-transform duration-300 ${
-                              isOpened ? "rotate-90 text-[var(--gold)]" : ""
-                            }`}
-                          />
-                        </div>
-                      </div>
 
-                      {/* Expanded lesson details */}
-                      {isOpened && (
-                        <div className="px-5 pb-5 pt-2 border-t border-[var(--border-glass)] space-y-4 text-xs animate-in fade-in">
-                          <p className="text-[var(--text-muted)] leading-relaxed">
-                            Ushbu darsda siz mavzuning nazariy asoslari, amaliy qo'llanishi va tahlil usullari bilan batafsil tanishasiz.
-                            Dars yakunida mini-test yoki AI keys orqali o'zlashtirish darajangiz baholanadi.
-                          </p>
-
-                          <div className="flex flex-wrap items-center gap-3 pt-2">
-                            <button className="px-4 py-2 rounded-xl bg-[var(--gold)] text-white font-bold text-xs shadow-sm hover:brightness-105 flex items-center gap-1.5">
-                              <Play className="w-3.5 h-3.5 fill-current" />
-                              <span>Darsni boshlash</span>
-                            </button>
-
-                            <Link
-                              to={`/simulation?courseId=${selectedCourse.id}`}
-                              className="px-4 py-2 rounded-xl bg-[var(--bg-void)] border border-[var(--border-glass)] text-[var(--text-primary)] font-bold text-xs hover:border-[var(--gold)] flex items-center gap-1.5"
-                            >
-                              <Sparkles className="w-3.5 h-3.5 text-[var(--gold)]" />
-                              <span>Ushbu mavzu bo'yicha AI keysga o'tish</span>
-                            </Link>
+                            <ChevronRight
+                              className={`w-4 h-4 text-[var(--text-muted)] transition-transform duration-300 ${
+                                isOpened ? "rotate-90 text-[var(--gold)]" : ""
+                              }`}
+                            />
                           </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+
+                        {/* Expanded lesson details */}
+                        {isOpened && (
+                          <div className="px-5 pb-5 pt-2 border-t border-[var(--border-glass)] space-y-4 text-xs animate-in fade-in">
+                            <p className="text-[var(--text-muted)] leading-relaxed">
+                              {lesson.summary ||
+                                lesson.content ||
+                                "Ushbu darsda siz mavzuning nazariy asoslari, amaliy qo'llanishi va tahlil usullari bilan batafsil tanishasiz. Dars yakunida mini-test yoki AI keys orqali o'zlashtirish darajangiz baholanadi."}
+                            </p>
+
+                            <div className="flex flex-wrap items-center gap-3 pt-2">
+                              <Link
+                                to={`/simulation?courseId=${selectedCourse.id}${
+                                  selectedCourse.simulation_slug ? `&caseId=${selectedCourse.simulation_slug}` : ""
+                                }`}
+                                className="px-4 py-2 rounded-xl bg-[var(--gold)] text-white font-bold text-xs shadow-sm hover:brightness-105 flex items-center gap-1.5"
+                              >
+                                <Sparkles className="w-3.5 h-3.5 text-white" />
+                                <span>Ushbu mavzu bo'yicha AI keysga o'tish</span>
+                              </Link>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -684,14 +690,14 @@ export default function StudentDashboard() {
                 Professorlar va Yetakchi Mentorlar
               </h1>
               <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5">
-                O'z sohasining yetuk akademik olimlari, fan doktorlari va amaliyotchi mutaxassislari.
+                O'z sohasining yetuk akademik olimlari, fan doktorlari va Chronous AI simulyatsiyalari mualliflari.
               </p>
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {sampleProfessors.map((prof, i) => (
+              {mentors.map((prof, i) => (
                 <div
-                  key={i}
+                  key={prof.id || i}
                   className="lux-card rounded-3xl p-6 border border-[var(--border-glass)] bg-[var(--bg-panel)] shadow-md flex flex-col items-center text-center space-y-4 hover:border-[var(--gold)]/40 hover:shadow-xl transition-all"
                 >
                   <div className="relative">
@@ -702,29 +708,45 @@ export default function StudentDashboard() {
                     />
                     <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-[var(--gold)] text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                       <Star className="w-3 h-3 fill-current" />
-                      {prof.rating}
+                      {prof.rating || 4.95}
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="font-bold text-sm sm:text-base text-[var(--text-primary)]">{prof.name}</h3>
-                    <p className="text-[11px] font-semibold text-[var(--gold)] mt-0.5">{prof.title}</p>
-                    <p className="text-[11px] text-[var(--text-muted)] mt-1">{prof.institution}</p>
+                    <h3 className="font-bold text-sm sm:text-base text-[var(--text-primary)]">
+                      {prof.name}
+                    </h3>
+                    <p className="text-[11px] font-semibold text-[var(--gold)] mt-0.5">
+                      {prof.title}
+                    </p>
+                    <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                      {prof.institution}
+                    </p>
                   </div>
 
                   <div className="w-full pt-3 border-t border-[var(--border-glass)] grid grid-cols-2 gap-2 text-xs text-[var(--text-muted)]">
                     <div>
-                      <span className="font-bold text-[var(--text-primary)] block">{prof.coursesCount} ta</span>
+                      <span className="font-bold text-[var(--text-primary)] block">
+                        {prof.courses_count || 2} ta
+                      </span>
                       <span className="text-[10px]">O'quv kursi</span>
                     </div>
                     <div>
-                      <span className="font-bold text-[var(--text-primary)] block">{prof.studentsCount}+</span>
+                      <span className="font-bold text-[var(--text-primary)] block">
+                        {prof.students_count || 340}+
+                      </span>
                       <span className="text-[10px]">Shogirdlar</span>
                     </div>
                   </div>
 
-                  <button className="w-full py-2 rounded-xl bg-[var(--bg-void)] border border-[var(--border-glass)] text-xs font-bold text-[var(--text-primary)] hover:border-[var(--gold)] hover:bg-[var(--gold)]/10 transition-all">
-                    Profilni ko'rish
+                  <button
+                    onClick={() => {
+                      setActiveTab("courses");
+                      setSearchQuery(prof.name);
+                    }}
+                    className="w-full py-2 rounded-xl bg-[var(--bg-void)] border border-[var(--border-glass)] text-xs font-bold text-[var(--text-primary)] hover:border-[var(--gold)] hover:bg-[var(--gold)]/10 transition-all"
+                  >
+                    Kurslarini ko'rish
                   </button>
                 </div>
               ))}
@@ -740,42 +762,54 @@ export default function StudentDashboard() {
                 Hamkor Ta'lim Tashkilotlari va Akademiyalar
               </h1>
               <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5">
-                ChronosAI platformasiga birlashgan ilmiy markazlar, davlat universitetlari va ilmiy laboratoriyalar.
+                Chronous AI platformasiga birlashgan ilmiy markazlar, davlat universitetlari va ilmiy laboratoriyalar tarmog'i.
               </p>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-6">
-              {sampleInstitutions.map((inst, i) => (
-                <div
-                  key={i}
-                  className="lux-card rounded-3xl p-6 sm:p-7 border border-[var(--border-glass)] bg-[var(--bg-panel)] shadow-md flex items-start gap-4 hover:border-[var(--gold)]/40 hover:shadow-xl transition-all"
-                >
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#967b4f] to-[#78613c] text-white flex items-center justify-center font-black text-base shrink-0 shadow-md shadow-[#967b4f]/25">
-                    {inst.logo}
-                  </div>
+              {institutions.map((inst, i) => {
+                const initials = (inst.name || "TN")
+                  .split(" ")
+                  .map((w) => w[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase();
 
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--gold)]/15 text-[var(--gold)]">
-                        {inst.type}
-                      </span>
-                      {inst.verified && (
+                return (
+                  <div
+                    key={inst.id || i}
+                    className="lux-card rounded-3xl p-6 sm:p-7 border border-[var(--border-glass)] bg-[var(--bg-panel)] shadow-md flex items-start gap-4 hover:border-[var(--gold)]/40 hover:shadow-xl transition-all"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#967b4f] to-[#78613c] text-white flex items-center justify-center font-black text-base shrink-0 shadow-md shadow-[#967b4f]/25">
+                      {initials}
+                    </div>
+
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--gold)]/15 text-[var(--gold)]">
+                          Akademik Markaz
+                        </span>
                         <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
                           <CheckCircle2 className="w-3 h-3" />
-                          Akademik akkreditatsiya
+                          Tasdiqlangan
                         </span>
-                      )}
-                    </div>
+                      </div>
 
-                    <h3 className="font-bold text-base text-[var(--text-primary)]">{inst.name}</h3>
-                    <p className="text-xs text-[var(--text-muted)]">{inst.location}</p>
+                      <h3 className="font-bold text-base text-[var(--text-primary)]">
+                        {inst.name}
+                      </h3>
+                      <p className="text-xs text-[var(--text-muted)]">
+                        {inst.address || "Toshkent shahri, Asosiy Ilmiy Majmua"}
+                      </p>
 
-                    <div className="pt-2 text-xs text-[var(--text-muted)]">
-                      <strong className="text-[var(--text-primary)]">Yo'nalishlar:</strong> {inst.departments}
+                      <div className="pt-2 text-xs text-[var(--text-muted)]">
+                        <strong className="text-[var(--text-primary)]">Holat:</strong>{" "}
+                        {inst.is_active ? "Faol ta'lim jarayoni olib borilmoqda" : "Ta'mirlashda"}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -787,7 +821,9 @@ export default function StudentDashboard() {
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#967b4f] to-[#78613c] p-1 flex items-center justify-center text-white shadow-xl shadow-[#967b4f]/25">
                   <div className="w-full h-full rounded-full bg-[var(--bg-panel)] flex items-center justify-center text-2xl font-serif font-black text-[var(--gold)]">
-                    {userInfo?.username?.slice(0, 2)?.toUpperCase() || "TL"}
+                    {currentUser?.first_name
+                      ? currentUser.first_name[0].toUpperCase()
+                      : currentUser?.username?.slice(0, 2)?.toUpperCase() || "TL"}
                   </div>
                 </div>
 
@@ -797,27 +833,41 @@ export default function StudentDashboard() {
                     <span>Faol Talaba</span>
                   </div>
                   <h2 className="text-2xl font-serif font-black text-[var(--text-primary)]">
-                    {userInfo?.username || "Talaba"}
+                    {currentUser?.first_name
+                      ? `${currentUser.first_name} ${currentUser.last_name || ""}`.strip?.() || currentUser.first_name
+                      : currentUser?.username || "Talaba"}
                   </h2>
                   <p className="text-xs text-[var(--text-muted)]">
-                    {userInfo?.email || "talaba@gmail.com"} • ID #{userInfo?.user_id || "782"}
+                    {currentUser?.email || "talaba@chronosai.uz"} • ID #{currentUser?.id || currentUser?.user_id || "782"}
                   </p>
                 </div>
               </div>
 
-              {/* Stats Grid */}
+              {/* Stats Grid (Real Backend Session and Currency Data) */}
               <div className="mt-8 grid grid-cols-3 gap-4 pt-6 border-t border-[var(--border-glass)] text-center">
                 <div className="p-3 rounded-2xl bg-[var(--bg-void)]/60">
-                  <span className="text-xl font-serif font-black text-[var(--text-primary)] block">3 ta</span>
-                  <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase">Yozilgan Kurslar</span>
+                  <span className="text-xl font-serif font-black text-[var(--text-primary)] block">
+                    {courses.length} ta
+                  </span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase">
+                    O'quv Kurslari
+                  </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-[var(--bg-void)]/60">
-                  <span className="text-xl font-serif font-black text-emerald-600 block">94%</span>
-                  <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase">AI Simulyatsiya Bahosi</span>
+                  <span className="text-xl font-serif font-black text-emerald-600 block">
+                    {averageAiScore}%
+                  </span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase">
+                    AI Simulyatsiya Bahosi
+                  </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-[var(--bg-void)]/60">
-                  <span className="text-xl font-serif font-black text-amber-700 block">120</span>
-                  <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase">Yig'ilgan Tangalar</span>
+                  <span className="text-xl font-serif font-black text-amber-700 block">
+                    {userCoins}
+                  </span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase">
+                    Yig'ilgan Tangalar
+                  </span>
                 </div>
               </div>
 

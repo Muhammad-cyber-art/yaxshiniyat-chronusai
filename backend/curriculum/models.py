@@ -93,3 +93,39 @@ class DocumentChunk(models.Model):
 
     def __str__(self):
         return f"Chunk[{self.chunk_index}] of {self.lesson.title}"
+
+
+class StudyGroup(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    mentor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="curriculum_study_groups")
+    name = models.CharField(max_length=255)
+    course_name = models.CharField(max_length=255)
+    schedule = models.CharField(max_length=255, default="Dush / Chor / Juma • 16:00")
+    max_students = models.PositiveSmallIntegerField(default=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "curriculum_study_group"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.name
+
+
+class StudyGroupStudent(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    group = models.ForeignKey(StudyGroup, on_delete=models.CASCADE, related_name="students")
+    name = models.CharField(max_length=255)
+    email = models.CharField(max_length=255, blank=True)
+    progress = models.PositiveSmallIntegerField(default=0)
+    ai_score = models.CharField(max_length=50, default="Yangi")
+    joined_date = models.DateField(auto_now_add=True)
+
+    class Meta:
+        db_table = "curriculum_study_group_student"
+        ordering = ["-joined_date"]
+
+    def __str__(self):
+        return f"{self.name} ({self.group.name})"
+
