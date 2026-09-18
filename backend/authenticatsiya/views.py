@@ -465,6 +465,17 @@ class GoogleAuthView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            # Agar backend sozlamalarida GOOGLE_CLIENT_ID ko'rsatilgan bo'lsa, aud ni tekshiramiz
+            from django.conf import settings
+            expected_client_id = getattr(settings, 'GOOGLE_CLIENT_ID', '').strip()
+            if expected_client_id:
+                token_aud = google_data.get('aud', '')
+                if token_aud != expected_client_id:
+                    return Response(
+                        {"detail": "Google token aud (Client ID) mos kelmadi."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
             email = email.strip().lower()
             first_name = google_data.get('given_name') or google_data.get('name') or ''
             last_name = google_data.get('family_name') or ''
