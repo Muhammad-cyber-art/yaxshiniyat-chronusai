@@ -349,7 +349,7 @@ class BranchAccessSerializer(serializers.ModelSerializer):
 class PublicRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True, required=False)
-    role = serializers.ChoiceField(choices=['mentor', 'student'], default='student', required=False)
+    role = serializers.ChoiceField(choices=['student'], default='student', required=False)
 
     class Meta:
         model = UserModel
@@ -380,12 +380,11 @@ class PublicRegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password_confirm', None)
         password = validated_data.pop('password')
-        role = validated_data.pop('role', 'student')
-        if role not in ['mentor', 'student']:
-            role = 'student'
+        validated_data.pop('role', None)
         
+        # Public registratsiya orqali faqat student yaratiladi (mentorlar faqat CRM ichida qo'shiladi)
         user = UserModel.objects.create_user(
-            role=role,
+            role='student',
             password=password,
             **validated_data
         )

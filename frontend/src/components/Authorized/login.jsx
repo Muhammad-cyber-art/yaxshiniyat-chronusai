@@ -30,7 +30,7 @@ export default function Login({ initialMode }) {
 
   const isRegisterRoute = initialMode === "register" || location.pathname === "/register";
   const [mode, setMode] = useState(isRegisterRoute ? "register" : "login");
-  const [selectedRole, setSelectedRole] = useState("student"); // 'student' or 'mentor'
+  const selectedRole = "student"; // Public registration is strictly for students (mentors are added inside CRM)
 
   useEffect(() => {
     if (user_info) {
@@ -388,48 +388,12 @@ export default function Login({ initialMode }) {
             </button>
           </div>
 
-          {/* Role Selection (Talaba yoki Mentor) */}
+          {/* Registration Notice for Students (Mentors are added in CRM) */}
           {mode === "register" && (
-            <div className="mb-6 space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--gold)] block">
-                Ro'yxatdan o'tish turi (Roli):
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("student")}
-                  className={`p-3.5 rounded-2xl border transition-all flex flex-col items-center text-center gap-2 ${
-                    selectedRole === "student"
-                      ? "bg-[var(--gold)]/15 border-[var(--gold)] shadow-md shadow-[var(--gold)]/10 text-[var(--text-primary)] ring-1 ring-[var(--gold)]/30"
-                      : "bg-[var(--bg-void)]/60 border-[var(--border-glass)] text-[var(--text-muted)] hover:border-[var(--gold)]/40"
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedRole === "student" ? "bg-[var(--gold)] text-white" : "bg-[var(--gold)]/10 text-[var(--gold)]"}`}>
-                    <GraduationCap className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-[var(--text-primary)]">Talaba (O'quvchi)</div>
-                    <div className="text-[10px] text-[var(--text-muted)] mt-0.5">AI simulyatsiya va ta'lim</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("mentor")}
-                  className={`p-3.5 rounded-2xl border transition-all flex flex-col items-center text-center gap-2 ${
-                    selectedRole === "mentor"
-                      ? "bg-[var(--gold)]/15 border-[var(--gold)] shadow-md shadow-[var(--gold)]/10 text-[var(--text-primary)] ring-1 ring-[var(--gold)]/30"
-                      : "bg-[var(--bg-void)]/60 border-[var(--border-glass)] text-[var(--text-muted)] hover:border-[var(--gold)]/40"
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedRole === "mentor" ? "bg-[var(--gold)] text-white" : "bg-[var(--gold)]/10 text-[var(--gold)]"}`}>
-                    <UserCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-[var(--text-primary)]">Mentor (Ustoz)</div>
-                    <div className="text-[10px] text-[var(--text-muted)] mt-0.5">Guruhlar va o'qitish</div>
-                  </div>
-                </button>
+            <div className="mb-5 flex items-center justify-center">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--gold)]/10 border border-[var(--gold)]/25 text-[11px] font-bold text-[var(--gold)] shadow-sm">
+                <GraduationCap className="w-4 h-4" />
+                <span>Talaba Ro'yxatdan O'tish</span>
               </div>
             </div>
           )}
@@ -481,7 +445,7 @@ export default function Login({ initialMode }) {
                 </svg>
                 <span>
                   {mode === "register"
-                    ? `Google bilan ${selectedRole === "mentor" ? "Mentor" : "Talaba"} sifatida ro'yxatdan o'tish`
+                    ? "Google bilan ro'yxatdan o'tish"
                     : "Google orqali kirish"}
                 </span>
               </button>
@@ -671,8 +635,6 @@ export default function Login({ initialMode }) {
                 <span className="text-[11px] font-black tracking-[0.2em]">
                   {loading
                     ? "YARATILMOQDA..."
-                    : selectedRole === "mentor"
-                    ? "MENTOR SIFATIDA HISOB YARATISH"
                     : "TALABA SIFATIDA HISOB YARATISH"}
                 </span>
                 <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />

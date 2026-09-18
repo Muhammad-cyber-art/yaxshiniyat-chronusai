@@ -480,9 +480,8 @@ class GoogleAuthView(APIView):
             first_name = google_data.get('given_name') or google_data.get('name') or ''
             last_name = google_data.get('family_name') or ''
 
-            role = request.data.get('role', 'student')
-            if role not in ['mentor', 'student']:
-                role = 'student'
+            # Ochiq Google registratsiyasi orqali faqat talabalar hisob ochishi mumkin (mentorlar CRM ichida qo'shiladi)
+            role = 'student'
 
             # 2. Foydalanuvchini email orqali bazadan qidirish
             user = UserModel.objects.filter(email__iexact=email).first()
