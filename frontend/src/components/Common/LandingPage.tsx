@@ -26,7 +26,11 @@ import {
   Target,
   BarChart3,
   Layers,
-  Check
+  Check,
+  Atom,
+  Dna,
+  FlaskConical,
+  Landmark
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import dashboard from "./dashboard-3d.png";
@@ -39,9 +43,9 @@ const pillars = [
     icon: Building2,
     badge: "Boshqaruv",
     title: "Markaz Boshqaruvi (CRM/ERP)",
-    tone: "text-amber-600",
+    tone: "text-amber-800",
     bg: "bg-amber-500/10",
-    border: "border-amber-500/20",
+    border: "border-amber-500/25",
     description: "Filiallar tarmog'i, kassa hisob-kitoblari, xodimlar maoshi, davomat va Telegram bot orqali ota-onalar bilan uzluksiz aloqa.",
     points: [
       "Ko'p filialli markazlarni yagona konsoldan boshqarish",
@@ -53,9 +57,9 @@ const pillars = [
     icon: BookOpen,
     badge: "Akademik Ta'lim",
     title: "LMS va Ta'lim Dasturlari",
-    tone: "text-emerald-600",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
+    tone: "text-[#806740]",
+    bg: "bg-[#967b4f]/10",
+    border: "border-[#967b4f]/25",
     description: "Strukturalangan darslar, nazorat testlari, uyga vazifalar va har bir talabaning o'zlashtirish dinamikasini kuzatuvchi kabinet.",
     points: [
       "Modul va darslar bo'yicha interaktiv o'quv dasturi",
@@ -67,12 +71,12 @@ const pillars = [
     icon: Bot,
     badge: "AI Innovatsiya",
     title: "Chronos AI Simulyatsiya Lab",
-    tone: "text-indigo-600",
-    bg: "bg-indigo-500/10",
-    border: "border-indigo-500/20",
+    tone: "text-[#967b4f]",
+    bg: "bg-[#967b4f]/15",
+    border: "border-[#967b4f]/30",
     description: "Gemini 2.5 Flash va RAG bilimlar bazasi orqali real keyslar tahlili. Talabaning har bir qadami AI tomonidan baholanadi.",
     points: [
-      "Kiberxavfsizlik, Huquq va Dasturlash real keyslari",
+      "Biologiya, Kimyo, Fizika, Huquq va Tarix real keyslari",
       "RAG embeddinglar asosida xatolarni tahlil qilish",
       "Interaktiv dialog, mahorat bali va tanga mukofotlari"
     ]
@@ -83,9 +87,9 @@ const roles: { icon: LucideIcon; title: string; tone: string; ring: string; card
   {
     icon: ShieldCheck,
     title: "Super Admin",
-    tone: "text-red-500",
-    ring: "from-red-500/25 to-red-500/0",
-    cardTint: "bg-red-50/80 border-red-200 shadow-red-500/5",
+    tone: "text-red-700",
+    ring: "from-red-500/20 to-red-500/0",
+    cardTint: "bg-red-50/70 border-red-200/80 shadow-red-500/5",
     items: [
       "Barcha filiallar va moliyaviy kassa ustidan global nazorat.",
       "Xodimlar, maoshlar va umumiy daromad analitikasi.",
@@ -95,9 +99,9 @@ const roles: { icon: LucideIcon; title: string; tone: string; ring: string; card
   {
     icon: Building2,
     title: "Admin / Filial",
-    tone: "text-blue-500",
-    ring: "from-blue-500/30 to-blue-500/0",
-    cardTint: "bg-blue-50/80 border-blue-200 shadow-blue-500/5",
+    tone: "text-[#967b4f]",
+    ring: "from-[#967b4f]/25 to-[#967b4f]/0",
+    cardTint: "bg-amber-50/70 border-amber-200/80 shadow-amber-500/5",
     items: [
       "O'ziga biriktirilgan markaz faoliyati va xonalari monitoringi.",
       "Guruhlar, to'lovlar va davomatni tezkor tekshirish.",
@@ -107,9 +111,9 @@ const roles: { icon: LucideIcon; title: string; tone: string; ring: string; card
   {
     icon: GraduationCap,
     title: "Mentor / Ustoz",
-    tone: "text-emerald-500",
-    ring: "from-emerald-500/30 to-emerald-500/0",
-    cardTint: "bg-emerald-50/80 border-emerald-200 shadow-emerald-500/5",
+    tone: "text-emerald-700",
+    ring: "from-emerald-500/25 to-emerald-500/0",
+    cardTint: "bg-emerald-50/70 border-emerald-200/80 shadow-emerald-500/5",
     items: [
       "O'z guruhlari ro'yxati, dars jadvallari va talabalar auditi.",
       "Uy vazifalarini baholash va AI simulyatsiya natijalarini ko'rish.",
@@ -120,18 +124,18 @@ const roles: { icon: LucideIcon; title: string; tone: string; ring: string; card
 
 const sampleCases = [
   {
-    icon: ShieldCheck,
-    tag: "Kiberxavfsizlik",
-    title: "Fintech Bank Tizimida SQL Injection Hujumi",
-    role: "SOC Kiberxavfsizlik Mutaxassisi",
+    icon: Dna,
+    tag: "Biologiya",
+    title: "DNK Replikatsiyasi va Fermentlar Tahlili",
+    role: "Molekulyar Biologiya Tadqiqotchisi",
     difficulty: "EASY",
     reward: "+25 tanga",
-    score: "92/100",
+    score: "94/100",
     time: "0.8s",
-    desc: "Bank veb-ilovasida shubhali HTTP so'rovlar qayd etildi. URL parametrlarida SQL belgilari aniqlandi. Zudlik bilan zaiflikni bartaraf eting.",
-    studentAnswer: "Kiruvchi so'rovlardagi SQL parametrlarni Prepared Statement orqali tekshiramiz va ORM parameterized querylardan foydalanamiz.",
-    aiFeedback: "Ajoyib yechim! Prepared Statements va ORM parametrlaridan foydalanish SQL Injection zaifliklarini eng samarali to'xtatuvchi usuldir.",
-    aiStrength: "OWASP Top 10 xavfsizlik standartiga to'liq mos keladi."
+    desc: "Eukariot hujayralarda DNK polimeraza faoliyatining xatoligi natijasida mutatsiya xavfi yuz berdi. Replikatsiya va reparatsiya mexanizmini tahlil qiling.",
+    studentAnswer: "DNK-polimeraza III ning ekzonukleaza faolligi yordamida noto'g'ri o'rnatilgan nukleotidlar kesib tashlanadi va DNK-ligaza uzilgan zanjirni tiklaydi.",
+    aiFeedback: "Ajoyib va aniq javob! Proofreading va mismatch repair jarayonlari genetik barqarorlikni ta'minlashda eng asosiy himoya hisoblanadi.",
+    aiStrength: "Hujayra biologiyasi va genetik fermentlar terminologiyasiga to'liq mos keladi."
   },
   {
     icon: Scale,
@@ -148,18 +152,18 @@ const sampleCases = [
     aiStrength: "Iqtisodiy sud amaliyoti pretsedentlariga tayangan."
   },
   {
-    icon: Terminal,
-    tag: "Dasturlash",
-    title: "Taqsimlangan Mikroservis Tizimida Kesh Nomuvofiqligi",
-    role: "Senior Backend Muhandis",
+    icon: Atom,
+    tag: "Fizika",
+    title: "Kvant Mexanikasi: Fotoeffekt va Foton Energiyasi",
+    role: "Fizik-Tadqiqotchi",
     difficulty: "HARD",
     reward: "+40 tanga",
     score: "98/100",
     time: "0.9s",
-    desc: "Redis keshidagi ma'lumotlar PostgreSQL asosiy bazasi bilan sinxronlashmayapti. Cache-Aside patterni va invalidatsiya mexanizmini to'g'rilang.",
-    studentAnswer: "Cache-Aside patternidan foydalanib, DB write amalga oshgach, Redisdagi kalitni darhol invalidate (DEL) qilamiz va 300s TTL o'rnatamiz.",
-    aiFeedback: "Mukammal arxitektura! Write-through o'rniga Cache Invalidation qo'llash Race Condition holatlarini butunlay bartaraf etadi.",
-    aiStrength: "Yuqori yuklamali tizimlar (High-Load) uchun eng optimal yechim."
+    desc: "Metall plastinkaga monoxromatik nurlanish tushganda elektronlarning chiqish ishi va to'xtatuvchi potensial orasidagi bog'liqlikni tahlil qiling.",
+    studentAnswer: "Eynshteynning fotoeffekt tenglamasidan foydalanamiz: h*nu = A_chiqish + (m*v^2)/2. To'xtatuvchi potensial e*U_to'xtatuvchi maksimal kinetik energiyaga teng.",
+    aiFeedback: "Mukammal fizik tahlil! Kvant nazariyasining klassik to'lqin nazariyasidan farqini va Plank doimiysi bog'liqligini to'g'ri ko'rsatib berdingiz.",
+    aiStrength: "Eynshteyn fotoeffekt formulasi va kvant optikasi qonuniyatlariga 100% mos."
   }
 ];
 
@@ -179,7 +183,7 @@ const botFeatures = [
 const botMessages = [
   {
     tag: "Davomat",
-    text: "Farzandingiz Aliyev Vali bugungi matematika darsida qatnashmadi.",
+    text: "Farzandingiz Aliyev Vali bugungi biologiya darsida qatnashmadi.",
     time: "14:32",
   },
   {
@@ -219,45 +223,45 @@ export function LandingPage() {
 
   return (
     <div data-theme="light" className="min-h-screen bg-[#fdfaf5] text-[#120f0d]">
-      {/* Aurora glow background */}
+      {/* Luxury Warm Glow Background (Champagne & Bronze - No Blue) */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -left-32 h-[38rem] w-[38rem] rounded-full bg-gold/25 blur-[120px]" />
-        <div className="absolute top-1/3 -right-40 h-[34rem] w-[34rem] rounded-full bg-indigo-500/15 blur-[130px]" />
-        <div className="absolute bottom-0 left-1/4 h-[30rem] w-[30rem] rounded-full bg-sky-500/15 blur-[130px]" />
-        <div className="absolute inset-0 bg-[#fdfaf5]/50" />
+        <div className="absolute -top-40 -left-32 h-[38rem] w-[38rem] rounded-full bg-[#967b4f]/15 blur-[130px]" />
+        <div className="absolute top-1/3 -right-40 h-[34rem] w-[34rem] rounded-full bg-amber-500/10 blur-[140px]" />
+        <div className="absolute bottom-0 left-1/4 h-[30rem] w-[30rem] rounded-full bg-[#967b4f]/10 blur-[130px]" />
+        <div className="absolute inset-0 bg-[#fdfaf5]/60" />
       </div>
 
       {/* Nav */}
       <header className="sticky top-0 z-50 px-4 pt-4">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between rounded-3xl px-5 py-3 bg-gradient-to-br from-white/95 to-[#fdfaf5]/85 backdrop-blur-xl border border-[#967b4f]/15 shadow-[0_12px_40px_-10px_rgba(150,123,79,0.15)]">
+        <nav className="mx-auto flex max-w-6xl items-center justify-between rounded-3xl px-5 py-3 bg-gradient-to-br from-white/95 to-[#fdfaf5]/90 backdrop-blur-xl border border-[#967b4f]/20 shadow-[0_12px_40px_-10px_rgba(150,123,79,0.15)]">
           <a href="#hero" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 via-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-md">
-              <Bot className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#967b4f] to-[#78613c] p-2 flex items-center justify-center text-white shadow-md shadow-[#967b4f]/25">
+              <img src="/YNlogo_without_word.png" alt="Yaxshi Niyat" className="w-full h-full object-contain filter drop-shadow" />
             </div>
             <div className="flex flex-col">
-              <span className="font-display font-black text-lg tracking-tight bg-gradient-to-r from-amber-700 via-indigo-900 to-blue-900 bg-clip-text text-transparent">
-                ChronosAI
+              <span className="font-serif font-black text-lg tracking-wide text-[#120f0d]">
+                Chronous <span className="text-[#967b4f]">AI</span>
               </span>
               <span className="text-[10px] text-[#827161] font-semibold -mt-1 tracking-wider uppercase">
-                Yaxshi Niyat Ekotizimi
+                Ta'lim Platformasi
               </span>
             </div>
           </a>
 
           <div className="hidden items-center gap-7 text-sm font-medium text-[#827161] md:flex">
-            <a className="transition-colors hover:text-indigo-600" href="#ustunlar">
+            <a className="transition-colors hover:text-[#967b4f]" href="#ustunlar">
               Imkoniyatlar
             </a>
-            <a className="transition-colors hover:text-indigo-600" href="#ai-lab">
+            <a className="transition-colors hover:text-[#967b4f]" href="#ai-lab">
               AI Simulyatsiya
             </a>
-            <a className="transition-colors hover:text-indigo-600" href="#routerlar">
+            <a className="transition-colors hover:text-[#967b4f]" href="#routerlar">
               Routerlar
             </a>
-            <a className="transition-colors hover:text-indigo-600" href="#telegram">
+            <a className="transition-colors hover:text-[#967b4f]" href="#telegram">
               Telegram Bot
             </a>
-            <a className="transition-colors hover:text-indigo-600" href="#moliya">
+            <a className="transition-colors hover:text-[#967b4f]" href="#moliya">
               Moliya
             </a>
           </div>
@@ -265,14 +269,15 @@ export function LandingPage() {
           <div className="flex items-center gap-2.5">
             <Link
               to="/simulation"
-              className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-all shadow-sm"
+              className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-[#967b4f] bg-[#967b4f]/10 border border-[#967b4f]/25 hover:bg-[#967b4f]/15 transition-all shadow-sm"
             >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              <Sparkles className="w-3.5 h-3.5 text-[#967b4f]" />
               <span>AI Lab</span>
             </Link>
             <Link
               to="/login"
-              className="bg-cta-gradient rounded-full px-5 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-soft transition-transform hover:scale-[1.04]"
+              style={{ color: "#ffffff" }}
+              className="bg-[#967b4f] hover:bg-[#806740] rounded-full px-5 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-soft transition-all hover:scale-[1.04]"
             >
               Tizimga kirish
             </Link>
@@ -289,10 +294,10 @@ export function LandingPage() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...spring, delay: 0.05 }}
-                className="bg-white/90 backdrop-blur-2xl border border-[#967b4f]/20 shadow-md inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold tracking-wide text-[#827161]"
+                className="bg-white/90 backdrop-blur-2xl border border-[#967b4f]/20 shadow-sm inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold tracking-wide text-[#827161]"
               >
-                <Sparkles className="h-3.5 w-3.5 text-amber-600" />
-                <span>ChronosAI • Ta'lim, Amaliyot va Markaz Boshqaruvi Yagona Tizimda</span>
+                <Sparkles className="h-3.5 w-3.5 text-[#967b4f]" />
+                <span>Aniq va Gumanitar Fanlar • Amaliyot va Markaz Boshqaruvi</span>
               </motion.div>
 
               <motion.h1
@@ -302,7 +307,7 @@ export function LandingPage() {
                 className="mt-6 text-4xl leading-[1.08] font-black md:text-6xl text-[#120f0d]"
               >
                 O'quv markazni boshqaring. Talabalarni esa{" "}
-                <span className="bg-gradient-to-r from-amber-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#967b4f] via-amber-700 to-[#78613c] bg-clip-text text-transparent">
                   AI bilan o'qiting!
                 </span>
               </motion.h1>
@@ -313,7 +318,7 @@ export function LandingPage() {
                 transition={{ ...spring, delay: 0.2 }}
                 className="mt-6 max-w-xl text-base leading-relaxed text-[#827161] md:text-lg"
               >
-                ChronosAI — o'quv markazlar faoliyatini to'liq avtomatlashtiruvchi CRM, chuqurlashtirilgan LMS hamda talabalarni real keyslarda chiniqtiruvchi Gemini 2.5 Flash AI simulyatsiya laboratoriyasi.
+                Chronous AI — markaz faoliyatini avtomatlashtiruvchi boshqaruv tizimi, chuqurlashtirilgan LMS hamda talabalarni Biologiya, Fizika, Kimyo, Huquq va Tarix fanlarida real keyslar bilan chiniqtiruvchi Gemini AI laboratoriyasi.
               </motion.p>
 
               <motion.div
@@ -327,10 +332,11 @@ export function LandingPage() {
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: "spring", stiffness: 400, damping: 12 }}
-                    className="inline-flex items-center gap-2 rounded-full px-7 py-4 text-sm font-bold text-white bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 shadow-[0_10px_25px_-5px_rgba(79,70,229,0.4)]"
+                    style={{ color: "#ffffff" }}
+                    className="inline-flex items-center gap-2 rounded-full px-7 py-4 text-sm font-bold bg-[#967b4f] hover:bg-[#806740] shadow-[0_10px_25px_-5px_rgba(150,123,79,0.35)] text-white transition-all"
                   >
-                    <Play className="h-4 w-4 fill-white" />
-                    <span>AI Laboratoriyasini Sinab Ko'rish</span>
+                    <Play className="h-4 w-4 fill-white text-white" />
+                    <span style={{ color: "#ffffff" }}>AI Laboratoriyasini Sinab Ko'rish</span>
                   </motion.div>
                 </Link>
 
@@ -339,10 +345,10 @@ export function LandingPage() {
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: "spring", stiffness: 400, damping: 12 }}
-                    className="inline-flex items-center gap-2 rounded-full px-6 py-4 text-sm font-semibold text-[#120f0d] bg-white border border-[#967b4f]/20 shadow-md hover:bg-[#faf7f2]"
+                    className="inline-flex items-center gap-2 rounded-full px-6 py-4 text-sm font-semibold text-[#120f0d] bg-white border border-[#967b4f]/25 shadow-md hover:bg-[#faf7f2]"
                   >
                     <span>Boshqaruv Tizimiga Kirish</span>
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-4 w-4 text-[#967b4f]" />
                   </motion.div>
                 </Link>
               </motion.div>
@@ -354,11 +360,11 @@ export function LandingPage() {
                   <div className="text-xs text-[#827161] font-medium mt-0.5">Avtomatlashtirish</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-indigo-600">Gemini 2.5</div>
+                  <div className="text-2xl font-black text-[#967b4f]">Gemini 2.5</div>
                   <div className="text-xs text-[#827161] font-medium mt-0.5">Flash AI Model</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-emerald-600">0 Xatolik</div>
+                  <div className="text-2xl font-black text-amber-900">0 Xatolik</div>
                   <div className="text-xs text-[#827161] font-medium mt-0.5">Moliyaviy Hisob-kitob</div>
                 </div>
               </div>
@@ -371,15 +377,15 @@ export function LandingPage() {
               transition={{ type: "spring", stiffness: 90, damping: 13, delay: 0.15 }}
               className="relative"
             >
-              <div className="relative rounded-3xl p-2 bg-gradient-to-tr from-amber-500/20 via-indigo-500/20 to-blue-500/20 shadow-2xl backdrop-blur-xl">
+              <div className="relative rounded-3xl p-2 bg-gradient-to-tr from-[#967b4f]/25 via-amber-500/15 to-[#967b4f]/20 shadow-2xl backdrop-blur-xl border border-[#967b4f]/20">
                 <motion.img
                   src={dashboard}
-                  alt="ChronosAI platformasi boshqaruv paneli"
+                  alt="Yaxshi Niyat platformasi boshqaruv paneli"
                   width={1200}
                   height={1008}
                   animate={{ y: [0, -14, 0] }}
                   transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                  className="w-full rounded-2xl drop-shadow-[0_30px_60px_rgba(79,70,229,0.2)]"
+                  className="w-full rounded-2xl drop-shadow-[0_25px_50px_rgba(150,123,79,0.2)]"
                 />
               </div>
 
@@ -388,14 +394,14 @@ export function LandingPage() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
-                className="absolute -bottom-6 -left-4 sm:bottom-4 sm:-left-6 bg-white/95 backdrop-blur-2xl border border-indigo-200/80 shadow-xl rounded-2xl p-4 flex items-center gap-3.5 max-w-xs"
+                className="absolute -bottom-6 -left-4 sm:bottom-4 sm:-left-6 bg-white/95 backdrop-blur-2xl border border-[#967b4f]/30 shadow-xl rounded-2xl p-4 flex items-center gap-3.5 max-w-xs"
               >
-                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-indigo-600/30">
-                  <Bot className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-xl bg-[#967b4f] flex items-center justify-center text-white shrink-0 shadow-md shadow-[#967b4f]/30">
+                  <Bot className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <div className="text-xs font-bold text-[#120f0d]">AI Simulyator Faol</div>
-                  <div className="text-[11px] text-[#827161] mt-0.5">Real kiber-keyslar va huquqiy tahlillar tayyor</div>
+                  <div className="text-[11px] text-[#827161] mt-0.5">Biologiya, Fizika, Kimyo va Huquq keyslari tayyor</div>
                 </div>
               </motion.div>
             </motion.div>
@@ -412,14 +418,14 @@ export function LandingPage() {
               transition={{ type: "spring", stiffness: 110, damping: 15 }}
               className="text-center max-w-3xl mx-auto"
             >
-              <span className="text-xs font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-200 px-3.5 py-1.5 rounded-full">
-                ChronosAI Ekotizimining 3 Ta Ustuni
+              <span className="text-xs font-bold uppercase tracking-widest text-[#967b4f] bg-[#967b4f]/10 border border-[#967b4f]/25 px-3.5 py-1.5 rounded-full">
+                Chronous AI Ekotizimining 3 Asosiy Ustuni
               </span>
               <h2 className="mt-4 text-3xl font-black md:text-5xl text-[#120f0d]">
                 Boshqaruv, Ta'lim va Amaliyot bir nuqtada
               </h2>
               <p className="mt-4 text-[#827161] md:text-lg leading-relaxed">
-                Yaxshi Niyatning murakkab moliyaviy boshqaruv kuchi va OmniLab AI laboratoriyasining ilg'or amaliy simulyatsiyasi birlashdi.
+                Chronous AI platformasining ilg'or moliyaviy boshqaruv kuchi va chuqurlashtirilgan simulyatsiya laboratoriyasi yagona tizimda mujassamlashdi.
               </p>
             </motion.div>
 
@@ -432,7 +438,7 @@ export function LandingPage() {
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ ...pop, delay: i * 0.1 }}
                   whileHover={{ y: -8 }}
-                  className="bg-white/90 backdrop-blur-2xl border border-[#967b4f]/15 rounded-[2.5rem] p-8 shadow-xl flex flex-col justify-between"
+                  className="bg-white/90 backdrop-blur-2xl border border-[#967b4f]/20 rounded-[2.5rem] p-8 shadow-xl flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-6">
@@ -447,7 +453,7 @@ export function LandingPage() {
                     <h3 className="text-xl font-bold text-[#120f0d] mb-3">{p.title}</h3>
                     <p className="text-sm text-[#827161] leading-relaxed mb-6">{p.description}</p>
 
-                    <div className="space-y-2.5 pt-4 border-t border-gray-100">
+                    <div className="space-y-2.5 pt-4 border-t border-[#967b4f]/10">
                       {p.points.map((pt, idx) => (
                         <div key={idx} className="flex items-start gap-2.5 text-xs text-[#827161] font-medium">
                           <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${p.tone}`} />
@@ -465,28 +471,28 @@ export function LandingPage() {
         {/* AI Simulation Showcase Section */}
         <section id="ai-lab" className="px-4 py-20">
           <div className="mx-auto max-w-6xl">
-            <div className="relative rounded-[3rem] p-8 sm:p-12 lg:p-16 bg-gradient-to-br from-white/95 via-[#fbf8f2]/95 to-indigo-50/50 backdrop-blur-2xl border border-[#967b4f]/25 shadow-[0_25px_70px_-15px_rgba(150,123,79,0.2)] overflow-hidden">
-              {/* Luminous luxury ambient orbs */}
-              <div className="absolute -top-24 -right-24 w-96 h-96 bg-gradient-to-br from-indigo-500/15 via-purple-500/10 to-transparent rounded-full blur-[90px] pointer-events-none" />
-              <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-gradient-to-tr from-amber-500/15 via-indigo-500/10 to-transparent rounded-full blur-[90px] pointer-events-none" />
+            <div className="relative rounded-[3rem] p-8 sm:p-12 lg:p-16 bg-gradient-to-br from-white/95 via-[#fbf8f2]/95 to-amber-50/35 backdrop-blur-2xl border border-[#967b4f]/25 shadow-[0_25px_70px_-15px_rgba(150,123,79,0.2)] overflow-hidden">
+              {/* Luminous luxury ambient orbs - strictly warm gold/bronze */}
+              <div className="absolute -top-24 -right-24 w-96 h-96 bg-gradient-to-br from-[#967b4f]/15 via-amber-500/10 to-transparent rounded-full blur-[90px] pointer-events-none" />
+              <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-gradient-to-tr from-amber-500/15 via-[#967b4f]/10 to-transparent rounded-full blur-[90px] pointer-events-none" />
 
               <div className="relative z-10 grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
                 <div>
-                  <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-amber-500/10 border border-indigo-200/80 text-indigo-800 text-xs font-bold mb-4 shadow-sm">
-                    <Bot className="w-4 h-4 text-indigo-600" />
+                  <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-amber-50/90 border border-amber-200/80 text-amber-900 text-xs font-bold mb-4 shadow-sm">
+                    <Bot className="w-4 h-4 text-[#967b4f]" />
                     <span>Gemini 2.5 Flash bilan Real Simulyatsiya</span>
                     <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
                   </div>
 
                   <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-[#120f0d] leading-[1.15]">
                     Nazariyani unuting.{" "}
-                    <span className="bg-gradient-to-r from-amber-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    <span className="bg-gradient-to-r from-[#967b4f] via-amber-700 to-[#78613c] bg-clip-text text-transparent">
                       Real keyslar bilan chiniqing!
                     </span>
                   </h2>
 
                   <p className="mt-4 text-[#827161] text-sm sm:text-base leading-relaxed max-w-xl">
-                    Kiberxavfsizlik, Huquqshunoslik va Muhandislik sohalarida sun'iy intellekt talabaga haqiqiy vaziyatlarni taqdim etadi. O'quvchi har bir qadami bo'yicha tahliliy mulohaza va xatolarni tuzatish tavsiyalarini oladi.
+                    Biologiya, Fizika, Kimyo, Tarix va Huquqshunoslik fanlarida sun'iy intellekt talabaga haqiqiy vaziyatlarni taqdim etadi. O'quvchi har bir qadami bo'yicha tahliliy mulohaza va xatolarni tuzatish tavsiyalarini oladi.
                   </p>
 
                   <div className="mt-7 space-y-3">
@@ -500,23 +506,23 @@ export function LandingPage() {
                           transition={{ type: "spring", stiffness: 350, damping: 20 }}
                           className={`p-4 rounded-2xl transition-all flex items-center justify-between gap-4 cursor-pointer border ${
                             isSelected
-                              ? "bg-white border-indigo-500 shadow-[0_10px_25px_-5px_rgba(79,70,229,0.18)] ring-2 ring-indigo-500/20"
-                              : "bg-white/75 border-[#967b4f]/15 hover:bg-white hover:border-indigo-300 hover:shadow-md"
+                              ? "bg-white border-[#967b4f] shadow-[0_10px_25px_-5px_rgba(150,123,79,0.22)] ring-2 ring-[#967b4f]/25"
+                              : "bg-white/75 border-[#967b4f]/15 hover:bg-white hover:border-[#967b4f]/40 hover:shadow-md"
                           }`}
                         >
                           <div className="flex items-center gap-3.5 min-w-0">
                             <div
                               className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                                 isSelected
-                                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                                  : "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                                  ? "bg-[#967b4f] text-white shadow-md shadow-[#967b4f]/30"
+                                  : "bg-[#967b4f]/10 text-[#967b4f] border border-[#967b4f]/20"
                               }`}
                             >
                               <c.icon className="w-5 h-5" />
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900 bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-md">
                                   {c.tag}
                                 </span>
                                 <span className="text-[10px] font-semibold text-[#827161]">
@@ -531,15 +537,15 @@ export function LandingPage() {
                           </div>
 
                           <div className="shrink-0 flex items-center gap-2.5">
-                            <span className="text-[11px] font-black text-amber-800 bg-amber-500/15 border border-amber-500/25 px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                              <Coins className="w-3 h-3 text-amber-600" />
+                            <span className="text-[11px] font-black text-amber-900 bg-amber-500/15 border border-amber-500/25 px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                              <Coins className="w-3 h-3 text-[#967b4f]" />
                               <span>{c.reward}</span>
                             </span>
                             <div
                               className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
                                 isSelected
-                                  ? "bg-indigo-600 text-white"
-                                  : "bg-gray-100 text-gray-400"
+                                  ? "bg-[#967b4f] text-white"
+                                  : "bg-[#faf7f2] text-[#827161]"
                               }`}
                             >
                               <ArrowRight className="w-3 h-3" />
@@ -554,7 +560,7 @@ export function LandingPage() {
                     <Link
                       to="/simulation"
                       style={{ color: "#ffffff" }}
-                      className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 font-bold text-sm shadow-[0_12px_30px_-5px_rgba(79,70,229,0.35)] transition-transform hover:scale-[1.03] active:scale-[0.98]"
+                      className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-[#967b4f] hover:bg-[#806740] font-bold text-sm shadow-[0_12px_30px_-5px_rgba(150,123,79,0.35)] transition-all hover:scale-[1.03] active:scale-[0.98]"
                     >
                       <Play className="w-4 h-4 fill-white text-white" />
                       <span style={{ color: "#ffffff" }}>Simulyatsiya Laboratoriyasiga O'tish</span>
@@ -564,15 +570,15 @@ export function LandingPage() {
                 </div>
 
                 {/* Simulated Turn Preview - Live Interactive Card */}
-                <div className="bg-white/95 border border-[#967b4f]/20 rounded-3xl p-6 sm:p-7 shadow-[0_20px_50px_-10px_rgba(150,123,79,0.18)] backdrop-blur-xl relative">
+                <div className="bg-white/95 border border-[#967b4f]/25 rounded-3xl p-6 sm:p-7 shadow-[0_20px_50px_-10px_rgba(150,123,79,0.18)] backdrop-blur-xl relative">
                   <div className="flex items-center justify-between pb-4 border-b border-[#967b4f]/15">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/30">
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#967b4f] to-[#78613c] flex items-center justify-center text-white shadow-md shadow-[#967b4f]/25">
                         <Bot className="w-4.5 h-4.5" />
                       </div>
                       <div>
                         <span className="text-xs font-bold text-[#120f0d] block">AI Mutaxassis Bahosi</span>
-                        <span className="text-[10px] text-indigo-600 font-medium">Gemini 2.5 Flash Real-Time tahlil</span>
+                        <span className="text-[10px] text-[#967b4f] font-semibold">Gemini 2.5 Flash Real-Time tahlil</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full shadow-sm">
@@ -587,8 +593,8 @@ export function LandingPage() {
                     {/* Student input */}
                     <div className="p-4 rounded-2xl bg-[#faf7f2] border border-[#967b4f]/15 shadow-sm">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-extrabold text-indigo-700 flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+                        <span className="font-extrabold text-[#4a3d31] flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#967b4f]" />
                           Talaba javobi:
                         </span>
                         <span className="text-[10px] text-[#827161]">Topshirildi</span>
@@ -599,13 +605,13 @@ export function LandingPage() {
                     </div>
 
                     {/* AI Feedback */}
-                    <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/80 via-purple-50/40 to-indigo-50/60 border border-indigo-200/80 shadow-sm">
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50/70 via-[#fdfaf5] to-amber-50/40 border border-[#967b4f]/25 shadow-sm">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-extrabold text-indigo-900 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                        <span className="font-extrabold text-amber-900 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-[#967b4f]" />
                           AI Tahlili (Gemini 2.5):
                         </span>
-                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100/70 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-bold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded-md">
                           {sampleCases[activeCaseIdx].time}
                         </span>
                       </div>
@@ -626,10 +632,10 @@ export function LandingPage() {
                     {/* Performance Micro-bar */}
                     <div className="pt-3 border-t border-[#967b4f]/15 flex items-center justify-between text-[11px] text-[#827161]">
                       <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                        Mukofot: <strong className="text-amber-800 font-bold">{sampleCases[activeCaseIdx].reward} berildi</strong>
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#967b4f]" />
+                        Mukofot: <strong className="text-amber-900 font-bold">{sampleCases[activeCaseIdx].reward} berildi</strong>
                       </span>
-                      <span className="text-indigo-600 font-semibold cursor-pointer hover:underline">
+                      <span className="text-[#967b4f] font-semibold cursor-pointer hover:underline">
                         Batafsil matrisa →
                       </span>
                     </div>
@@ -699,13 +705,13 @@ export function LandingPage() {
           <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-2 items-center">
             <div className="order-2 lg:order-1">
               <div className="bg-white/90 backdrop-blur-2xl border border-[#967b4f]/20 rounded-[2.5rem] p-7 shadow-xl max-w-md mx-auto">
-                <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
-                  <div className="w-10 h-10 rounded-full bg-sky-500 flex items-center justify-center text-white">
-                    <Send className="w-5 h-5" />
+                <div className="flex items-center gap-3 pb-4 border-b border-[#967b4f]/10">
+                  <div className="w-10 h-10 rounded-full bg-[#967b4f] flex items-center justify-center text-white shadow-md shadow-[#967b4f]/25">
+                    <Send className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-[#120f0d]">ChronosAI Telegram Bot</div>
-                    <div className="text-xs text-emerald-600 font-medium">Faol • Real vaqt eslatmalari</div>
+                    <div className="text-sm font-bold text-[#120f0d]">Yaxshi Niyat Telegram Bot</div>
+                    <div className="text-xs text-emerald-700 font-semibold">Faol • Real vaqt eslatmalari</div>
                   </div>
                 </div>
 
@@ -713,10 +719,10 @@ export function LandingPage() {
                   {botMessages.map((m, idx) => (
                     <div key={idx} className="p-4 rounded-2xl bg-[#fdfaf5] border border-[#967b4f]/15 text-xs">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full text-[10px]">
+                        <span className="font-bold text-amber-900 bg-amber-50 border border-amber-200/60 px-2.5 py-0.5 rounded-full text-[10px]">
                           {m.tag}
                         </span>
-                        <span className="text-gray-400 text-[10px]">{m.time}</span>
+                        <span className="text-[#827161] text-[10px]">{m.time}</span>
                       </div>
                       <p className="text-[#120f0d] font-medium leading-relaxed">{m.text}</p>
                     </div>
@@ -726,7 +732,7 @@ export function LandingPage() {
             </div>
 
             <div className="order-1 lg:order-2">
-              <span className="text-xs font-bold uppercase tracking-widest text-sky-600 bg-sky-50 border border-sky-200 px-3.5 py-1.5 rounded-full">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#967b4f] bg-[#967b4f]/10 border border-[#967b4f]/25 px-3.5 py-1.5 rounded-full">
                 Tezkor Telegram Integratsiyasi
               </span>
               <h2 className="mt-4 text-3xl font-black md:text-5xl text-[#120f0d]">
@@ -739,7 +745,7 @@ export function LandingPage() {
               <div className="mt-8 space-y-4">
                 {botFeatures.map((f, i) => (
                   <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/80 border border-[#967b4f]/15">
-                    <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[#967b4f]/10 text-[#967b4f] border border-[#967b4f]/20 flex items-center justify-center shrink-0">
                       <f.icon className="w-5 h-5" />
                     </div>
                     <div>
@@ -757,12 +763,12 @@ export function LandingPage() {
         <section id="moliya" className="px-4 py-20">
           <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-2">
             <div className="lg:py-8">
-              <span className="text-xs font-bold uppercase tracking-widest text-amber-700 bg-amber-50 border border-amber-200 px-3.5 py-1.5 rounded-full">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#967b4f] bg-[#967b4f]/10 border border-[#967b4f]/25 px-3.5 py-1.5 rounded-full">
                 Aqlli Moliyaviy Algoritm
               </span>
               <h2 className="mt-4 text-3xl font-black md:text-4xl text-[#120f0d]">
                 Murakkab moliyaviy muammolarga{" "}
-                <span className="text-amber-600">aqlli yechimlar</span>.
+                <span className="text-[#967b4f]">aqlli yechimlar</span>.
               </h2>
               <p className="mt-4 text-[#827161] md:text-lg leading-relaxed">
                 Bizning hisob-kitob modulimiz oddiy tizimlardan farqli o'laroq, dars qoldirilishi, guruhdan-guruhga o'tish va imtiyozli to'lovlarni kumulyativ xatoliksiz avtomatik hisoblab beradi.
@@ -771,7 +777,7 @@ export function LandingPage() {
               <div className="mt-8 space-y-4">
                 {financeFeatures.map((f, i) => (
                   <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/80 border border-[#967b4f]/15 shadow-sm">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[#967b4f]/10 text-[#967b4f] border border-[#967b4f]/20 flex items-center justify-center shrink-0">
                       <f.icon className="w-5 h-5" />
                     </div>
                     <div>
@@ -787,7 +793,7 @@ export function LandingPage() {
               <div className="bg-white/90 backdrop-blur-2xl border border-[#967b4f]/20 shadow-xl rounded-[2.5rem] p-7">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-bold text-[#120f0d]">Hisobot Namuna</p>
-                  <span className="rounded-full bg-amber-500/15 border border-amber-500/25 px-3 py-1 text-[11px] font-bold text-amber-800">
+                  <span className="rounded-full bg-amber-500/15 border border-amber-500/25 px-3 py-1 text-[11px] font-bold text-amber-900">
                     Noyabr Oyi
                   </span>
                 </div>
@@ -804,27 +810,25 @@ export function LandingPage() {
                 </div>
                 <div className="mt-6 flex items-center justify-between rounded-2xl px-5 py-4 bg-gradient-to-r from-amber-500/20 via-amber-600/10 to-amber-500/20 border border-amber-500/30">
                   <span className="text-sm font-bold text-[#120f0d]">Yakuniy summa</span>
-                  <span className="text-xl font-black text-amber-900">475,000 UZS</span>
+                  <span className="text-xl font-black text-amber-950">475,000 UZS</span>
                 </div>
               </div>
             </div>
           </div>
         </section>
-
-
       </main>
 
       {/* Footer */}
       <footer className="px-4 pb-10">
-        <div className="bg-white/90 backdrop-blur-2xl border border-[#967b4f]/15 shadow-xl mx-auto flex max-w-6xl flex-col items-center gap-4 rounded-3xl px-8 py-10 text-center">
+        <div className="bg-white/90 backdrop-blur-2xl border border-[#967b4f]/20 shadow-xl mx-auto flex max-w-6xl flex-col items-center gap-4 rounded-3xl px-8 py-10 text-center">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-600 to-indigo-600 flex items-center justify-center text-white">
-              <Bot className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#967b4f] to-[#78613c] p-1.5 flex items-center justify-center text-white shadow-md shadow-[#967b4f]/25">
+              <img src="/YNlogo_without_word.png" alt="Logo" className="w-full h-full object-contain filter drop-shadow" />
             </div>
-            <span className="font-display font-bold text-lg text-[#120f0d]">ChronosAI</span>
+            <span className="font-serif font-bold text-lg text-[#120f0d]">Chronous AI</span>
           </div>
           <p className="text-xs text-[#827161]">
-            © {new Date().getFullYear()} ChronosAI | Yaxshi Niyat Educational & Practical Platform. Barcha huquqlar himoyalangan.
+            © {new Date().getFullYear()} Chronous AI Ta'lim Platformasi. Barcha huquqlar himoyalangan.
           </p>
         </div>
       </footer>

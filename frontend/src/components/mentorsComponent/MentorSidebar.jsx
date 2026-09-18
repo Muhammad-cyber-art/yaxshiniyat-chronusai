@@ -35,6 +35,7 @@ export default function MentorSidebar() {
     };
 
     const menuItems = [
+        { name: "Chronous AI Dashboard", path: "/mentor/dashboard", icon: <Sparkles size={18} className="text-[var(--gold)]" /> },
         { name: "Guruhlar", path: "/mentor", icon: <LayoutDashboard size={18} /> },
         ...(userMe?.permissions?.pay_slip !== false ? [{ name: "Moliya", path: "/mentor/finance", icon: <DollarSign size={18} /> }] : [])
     ];
@@ -50,8 +51,8 @@ export default function MentorSidebar() {
                         </div>
                     </div>
                     <div className="flex flex-col">
-                        <h2 className="text-2xl font-black text-[var(--text-primary)] tracking-tighter capitalize leading-none">
-                            Yaxshi Niyat
+                        <h2 className="text-2xl font-black text-[var(--text-primary)] tracking-tighter leading-none">
+                            Chronous AI
                         </h2>
                     </div>
                 </div>
