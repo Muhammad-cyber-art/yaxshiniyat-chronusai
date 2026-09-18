@@ -2,13 +2,19 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .views import RegisterViewSet, LoginView, UsersListView, CurrentUserView,BranchAccessViewSet
+from .views import (
+    RegisterViewSet, LoginView, UsersListView, CurrentUserView,
+    BranchAccessViewSet, PublicRegisterView, GoogleAuthView
+)
 
 router = DefaultRouter()
 router.register(r'users', RegisterViewSet, basename='user')
 router.register(r'branch-access', BranchAccessViewSet, basename='branch-access')
 
 urlpatterns = [
+    path('auth/register/', PublicRegisterView.as_view(), name='public-register'),
+    path('auth/google/', GoogleAuthView.as_view(), name='google-auth'),
+    path('register/public/', PublicRegisterView.as_view(), name='public-register-alt'),
     path('register/', include(router.urls)),                  # POST /users/ - yaratish, GET - ro'yxat
     path('login/', LoginView.as_view(), name='login'),
     path('refresh/', TokenRefreshView.as_view(), name='refresh'),

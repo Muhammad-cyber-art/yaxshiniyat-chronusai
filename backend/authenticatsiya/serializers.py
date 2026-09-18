@@ -115,6 +115,17 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import BranchAccess  # Yangi modelni import qilamiz
 
 class LoginSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        username_or_email = attrs.get('username')
+        if username_or_email:
+            from django.db.models import Q
+            user = User.objects.filter(
+                Q(email__iexact=username_or_email) | Q(username__iexact=username_or_email)
+            ).first()
+            if user:
+                attrs['username'] = user.username
+        return super().validate(attrs)
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -333,3 +344,49 @@ class BranchAccessSerializer(serializers.ModelSerializer):
             granted_by=request.user
         )
         return branch_access
+
+
+class PublicRegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, min_length=8)
+    password_confirm = serializers.CharField(write_only=True, required=False)
+    role = serializers.ChoiceField(choices=['mentor', 'student'], default='student', required=False)
+
+    class Meta:
+        model = UserModel
+        fields = (
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'phone_number', 'role', 'password', 'password_confirm'
+        )
+
+    def validate_username(self, value):
+        if UserModel.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError("Ushbu username allaqachon band.")
+        if '<' in value or '>' in value:
+            raise serializers.ValidationError("Username xavfli belgilarni o'z ichiga olmasligi kerak.")
+        return value
+
+    def validate_email(self, value):
+        if value and UserModel.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("Ushbu email bilan allaqachon hisob yaratilgan.")
+        return value
+
+    def validate(self, attrs):
+        pw = attrs.get('password')
+        pw_confirm = attrs.get('password_confirm')
+        if pw_confirm and pw != pw_confirm:
+            raise serializers.ValidationError({"password_confirm": "Kiritilgan parollar bir-biriga mos kelmadi."})
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop('password_confirm', None)
+        password = validated_data.pop('password')
+        role = validated_data.pop('role', 'student')
+        if role not in ['mentor', 'student']:
+            role = 'student'
+        
+        user = UserModel.objects.create_user(
+            role=role,
+            password=password,
+            **validated_data
+        )
+        return user

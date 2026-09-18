@@ -1,17 +1,20 @@
 from rest_framework import status, viewsets, permissions, filters
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView, RetrieveAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
-from rest_framework.exceptions import PermissionDenied ,ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
+import requests
+from django.utils.crypto import get_random_string
 
 from .serializers import (
     RegisterSerializer, LoginSerializer, UsersListSerializer, 
-    CurrentUserSerializer, BranchAccessSerializer
+    CurrentUserSerializer, BranchAccessSerializer, PublicRegisterSerializer
 )
 from .models import UserModel, BranchAccess
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -395,3 +398,142 @@ class BranchAccessViewSet(ModelViewSet):
     
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
+
+
+class PublicRegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PublicRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            token = LoginSerializer.get_token(user)
+            return Response({
+                "detail": "Muvaffaqiyatli ro'yxatdan o'tdingiz.",
+                "access": str(token.access_token),
+                "refresh": str(token),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "role": user.role,
+                    "subject": user.subject,
+                }
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GoogleAuthView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            credential = request.data.get('credential') or request.data.get('token')
+            if not credential:
+                return Response(
+                    {"detail": "Google credential (ID token) taqdim etilmadi. Iltimos, Google orqali qayta urining."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # 1. Google OAuth2 tokeninfo orqali token haqiqiyligini tekshirish
+            try:
+                resp = requests.get(
+                    f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}",
+                    timeout=8
+                )
+            except Exception as net_err:
+                return Response(
+                    {"detail": "Google serveriga ulanishda tarmoq xatoligi yuz berdi. Iltimos, birozdan so'ng qayta urining."},
+                    status=status.HTTP_502_BAD_GATEWAY
+                )
+
+            if resp.status_code != 200:
+                return Response(
+                    {"detail": "Google tokeni yaroqsiz yoki muddati tugagan."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            google_data = resp.json()
+            email = google_data.get('email')
+            email_verified = google_data.get('email_verified')
+
+            if not email or (email_verified is not True and str(email_verified).lower() != 'true'):
+                return Response(
+                    {"detail": "Google akkauntingiz emaili tasdiqlanmagan yoki mavjud emas."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            email = email.strip().lower()
+            first_name = google_data.get('given_name') or google_data.get('name') or ''
+            last_name = google_data.get('family_name') or ''
+
+            role = request.data.get('role', 'student')
+            if role not in ['mentor', 'student']:
+                role = 'student'
+
+            # 2. Foydalanuvchini email orqali bazadan qidirish
+            user = UserModel.objects.filter(email__iexact=email).first()
+            is_new = False
+
+            if not user:
+                # Yangi foydalanuvchi faqat student yoki mentor bo'lib ro'yxatdan o'tishi mumkin
+                base_username = email.split('@')[0].replace('.', '_').replace('-', '_')
+                username = base_username
+                counter = 1
+                while UserModel.objects.filter(username__iexact=username).exists():
+                    username = f"{base_username}_{counter}"
+                    counter += 1
+
+                user = UserModel.objects.create_user(
+                    username=username,
+                    email=email,
+                    first_name=first_name or username,
+                    last_name=last_name or '',
+                    role=role,
+                    password=get_random_string(32)
+                )
+                user.is_email_verified = True
+                user.save(update_fields=['is_email_verified'])
+                is_new = True
+            else:
+                # XAVFSIZLIK: Agar akkaunt super_admin yoki admin bo'lsa,
+                # ochiq Google OAuth orqali kirish qat'iyan taqiqlanadi!
+                if user.role in ['super_admin', 'admin'] or user.is_superuser or user.is_staff:
+                    return Response({
+                        "detail": "Xavfsizlik nuqtai nazaridan, ma'muriy (Admin / Super Admin) akkauntlar faqat maxsus login va parol orqali tizimga kirishi shart!"
+                    }, status=status.HTTP_403_FORBIDDEN)
+
+                # Oddiy foydalanuvchining roli o'zgartirilmaydi!
+                updated_fields = []
+                if first_name and not user.first_name:
+                    user.first_name = first_name
+                    updated_fields.append('first_name')
+                if last_name and not user.last_name:
+                    user.last_name = last_name
+                    updated_fields.append('last_name')
+                if not user.is_email_verified:
+                    user.is_email_verified = True
+                    updated_fields.append('is_email_verified')
+                if updated_fields:
+                    user.save(update_fields=updated_fields)
+
+            token = LoginSerializer.get_token(user)
+
+            return Response({
+                "detail": "Google orqali muvaffaqiyatli kirdingiz.",
+                "access": str(token.access_token),
+                "refresh": str(token),
+                "is_new_user": is_new,
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "role": user.role,
+                }
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": f"Google orqali kirishda xatolik yuz berdi: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)

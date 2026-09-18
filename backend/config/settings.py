@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -37,12 +38,15 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'yaxshi-niyat.uz,www.yaxshi-niyat.uz,
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',  # Must be first in INSTALLED_APPS for ASGI runserver
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # WebSocket / Channels
+    'channels',
     # local apps
     'authenticatsiya',
     'groups',
@@ -59,10 +63,11 @@ INSTALLED_APPS = [
     "django_celery_beat",
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
     'drf_spectacular',
-    ]
+]
     
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -112,19 +117,33 @@ APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
 APSCHEDULER_RUN_NOW_TIMEOUT = 25  # seconds
 
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES' : [
+    'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES' : [
+    'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend'
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
     ],
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 50,
-    'MAX_PAGE_SIZE': 200,
+    'PAGE_SIZE': 20,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+    },
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SPECTACULAR_SETTINGS = {
@@ -149,8 +168,11 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+    "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
 ROOT_URLCONF = 'config.urls'
 
@@ -170,36 +192,55 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
+# ─── CHANNELS / WEBSOCKET ──────────────────────────────────────────────────────
+REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1")
+USE_IN_MEMORY_CHANNELS = os.getenv(
+    "USE_IN_MEMORY_CHANNELS",
+    "True" if DEBUG else "False",
+).strip().lower() in ("true", "1", "yes")
 
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
-# Database Type: 'postgresql' yoki 'sqlite' (development uchun)
-DB_ENGINE = os.getenv('DB_ENGINE', 'sqlite')
-
-if DB_ENGINE == 'postgresql':
-    # PostgreSQL Configuration (Production uchun tavsiya etiladi)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'education_db'),
-            'USER': os.getenv('DB_USER', 'postgres'),
-            'PASSWORD': os.getenv('DB_PASSWORD', ''),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-            'CONN_MAX_AGE': 600,  # Connection pooling
-            'OPTIONS': {
-                'connect_timeout': 10,
-            }
+if USE_IN_MEMORY_CHANNELS:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
         }
     }
 else:
-    # SQLite Configuration (Faqat development uchun)
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+            },
+        },
+    }
+
+# ─── DATABASE (PostgreSQL + pgvector or SQLite for local/test) ────────────────
+USE_SQLITE = os.getenv("USE_SQLITE", "False").strip().lower() in ("true", "1", "yes")
+
+if USE_SQLITE or "test" in sys.argv:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME", "hackaton_db"),
+            "USER": os.getenv("DB_USER", "komilov_user"),
+            "PASSWORD": os.getenv("DB_PASSWORD", "komilov0904262009"),
+            "HOST": os.getenv("DB_HOST", "localhost"),
+            "PORT": os.getenv("DB_PORT", "5432"),
+            "OPTIONS": {
+                "options": "-c default_text_search_config=pg_catalog.english",
+            },
+            "CONN_MAX_AGE": 60,
+            "ATOMIC_REQUESTS": True,
         }
     }
 
@@ -372,3 +413,4 @@ AI_MAX_TOKENS = int(os.getenv("AI_MAX_TOKENS", "2048"))
 AI_TEMPERATURE = float(os.getenv("AI_TEMPERATURE", "0.2"))
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
 RAG_SIMILARITY_THRESHOLD = float(os.getenv("RAG_SIMILARITY_THRESHOLD", "0.60"))
+COIN_FARMING_COOLDOWN_HOURS = int(os.getenv("COIN_FARMING_COOLDOWN_HOURS", "24"))

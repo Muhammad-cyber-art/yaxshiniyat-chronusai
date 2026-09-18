@@ -29,6 +29,7 @@ class UserModel(AbstractUser):
         ('super_admin', 'Super Admin'),
         ('admin', 'Admin'),
         ('mentor', 'Mentor'),
+        ('student', 'Student'),
     )
     color = models.CharField(max_length=7, default="#ffffff", validators=[color_validator])
     image = models.ImageField(
@@ -60,6 +61,8 @@ class UserModel(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     subject = models.CharField(max_length=50, blank=True, null=True)
     telegram_chat_id = models.CharField(max_length=50, blank=True, null=True, verbose_name="Telegram Chat ID (Admin Bot)")
+    is_email_verified = models.BooleanField(default=False)
+    is_portfolio_public = models.BooleanField(default=True)
     
     def is_super_admin(self):
         return self.role == 'super_admin'
@@ -71,6 +74,9 @@ class UserModel(AbstractUser):
     
     def is_mentor(self):
         return self.role == 'mentor'
+
+    def is_student(self):
+        return self.role == 'student'
 
 class BranchAccess(models.Model):
     user = models.ForeignKey(

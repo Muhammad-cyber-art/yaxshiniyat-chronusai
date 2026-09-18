@@ -26,6 +26,8 @@ class SimulationCase(models.Model):
     coin_reward = models.PositiveIntegerField(default=25)
     max_steps = models.PositiveSmallIntegerField(default=5, validators=[MinValueValidator(2), MaxValueValidator(50)])
     passing_score = models.PositiveSmallIntegerField(default=70, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    hint_text = models.TextField(blank=True, default="")
+    expected_duration_minutes = models.PositiveSmallIntegerField(default=15)
     grading_rubric = models.JSONField(default=dict, blank=True)
     is_published = models.BooleanField(default=True, db_index=True)
     is_active = models.BooleanField(default=True)
