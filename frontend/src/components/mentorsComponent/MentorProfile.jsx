@@ -1,6 +1,7 @@
-import React from "react";
-import { Loader2, ChevronRight, Camera, Copy, Phone, Eye, EyeOff, Save, Trash2, Building2, Activity, UserMinus, ShieldCheck, LogOut as LogOutIcon } from "lucide-react";
+import React, { useState } from "react";
+import { Loader2, ChevronRight, Camera, Copy, Phone, Eye, EyeOff, Save, Trash2, Building2, Activity, UserMinus, ShieldCheck, LogOut as LogOutIcon, FlaskConical } from "lucide-react";
 import toast from "react-hot-toast";
+import api from "../../tokenUpdater/updater";
 
 // Hooks
 import { useMentorProfile } from "./MentorProfile/useMentorProfile";
@@ -32,6 +33,24 @@ export default function MentorProfilePage({ viewMode = "all" }) {
     } = useMentorProfile();
 
     const { mentor, mentorsGroup, isEditing, editData, showPassword, isTransferModalOpen, permissions } = state;
+    const [labLoading, setLabLoading] = useState(false);
+
+    // CRM dan mentor uchun parolsiz laboratoriya kirishi
+    const handleOpenLab = async () => {
+        setLabLoading(true);
+        try {
+            const res = await api.post(`/mentor-lab-token/${mentor.id}/`);
+            const { access, refresh } = res.data;
+            const labUrl = `${window.location.origin}/mentor-lab-entry?access=${encodeURIComponent(access)}&refresh=${encodeURIComponent(refresh)}`;
+            window.open(labUrl, "_blank", "noopener,noreferrer");
+            toast.success(`${mentor.first_name} uchun laboratoriya ochildi!`);
+        } catch (err) {
+            const detail = err.response?.data?.detail;
+            toast.error(detail || "Laboratoriya tokenini olishda xatolik.");
+        } finally {
+            setLabLoading(false);
+        }
+    };
 
     if (isMentorLoading || !mentor.id) {
         return (
@@ -78,6 +97,18 @@ export default function MentorProfilePage({ viewMode = "all" }) {
                             className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest border border-red-500/20 transition-all"
                         >
                             <LogOutIcon size={14} /> Chiqish
+                        </button>
+                    )}
+                    {/* Laboratoriyaga kirish tugmasi (admin va super_admin uchun) */}
+                    {(isSuperAdmin || (userRole === 'admin')) && !isOwnProfile && (
+                        <button
+                            onClick={handleOpenLab}
+                            disabled={labLoading}
+                            className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500/25 rounded-lg text-[10px] font-black uppercase tracking-widest border border-amber-500/20 transition-all disabled:opacity-50"
+                            title="Mentor laboratoriyasiga parolsiz kirish"
+                        >
+                            {labLoading ? <Loader2 size={14} className="animate-spin" /> : <FlaskConical size={14} />}
+                            Lab
                         </button>
                     )}
                     {isSuperAdmin && !isOwnProfile && (

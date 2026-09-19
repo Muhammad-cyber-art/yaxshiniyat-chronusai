@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   BookOpen,
@@ -30,11 +30,19 @@ import {
   BarChart3,
   Check,
   X,
+<<<<<<< Updated upstream
   Copy,
   FlaskConical,
   Scale,
   Activity,
   Atom
+=======
+  Upload,
+  File,
+  ImageIcon,
+  Download,
+  Paperclip
+>>>>>>> Stashed changes
 } from "lucide-react";
 import ThemeToggle from "../ThemeToggle";
 import { get_user_info } from "../Authorized/getRole";
@@ -105,6 +113,9 @@ export default function MentorDashboard() {
     summary: "",
     reading_time_minutes: 10,
   });
+  const [lessonFile, setLessonFile] = useState(null); // Yuklash uchun fayl
+  const [lessonFileDrag, setLessonFileDrag] = useState(false);
+  const lessonFileInputRef = useRef(null);
 
   // New Group Form State
   const [newGroupForm, setNewGroupForm] = useState({
@@ -239,15 +250,31 @@ export default function MentorDashboard() {
     if (!newLessonForm.title) return;
     setSubmitting(true);
     try {
+<<<<<<< Updated upstream
       await api.post("curriculum/lessons/", {
         course_id: newLessonForm.course_id || (courses[0] ? courses[0].id : undefined),
         title: newLessonForm.title,
         summary: newLessonForm.summary,
         reading_time_minutes: Number(newLessonForm.reading_time_minutes) || 10,
+=======
+      // FormData — fayl bilan birga yuborish
+      const formData = new FormData();
+      formData.append("course_id", newLessonForm.course_id || (courses[0] ? courses[0].id : ""));
+      formData.append("title", newLessonForm.title);
+      formData.append("summary", newLessonForm.summary || "");
+      formData.append("reading_time_minutes", String(Number(newLessonForm.reading_time_minutes) || 10));
+      if (lessonFile) {
+        formData.append("attachment", lessonFile);
+      }
+
+      const res = await api.post("curriculum/lessons/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+>>>>>>> Stashed changes
       });
 
-      triggerToast(`"${newLessonForm.title}" mavzusi muvaffaqiyatli qo'shildi!`);
+      triggerToast(`"${newLessonForm.title}" mavzusi muvaffaqiyatli qo'shildi!${lessonFile ? " Fayl ham yuklandi." : ""}`);
       setShowCreateLessonModal(false);
+      setLessonFile(null);
       setNewLessonForm({
         course_id: courses[0]?.id || "",
         title: "",
@@ -257,7 +284,8 @@ export default function MentorDashboard() {
       await fetchMentorData();
     } catch (err) {
       console.error("Create lesson error:", err);
-      alert("Dars qo'shishda xatolik yuz berdi. Iltimos qaytadan urining.");
+      const msg = err.response?.data?.attachment?.[0] || err.response?.data?.detail || "Dars qo'shishda xatolik yuz berdi.";
+      alert(typeof msg === "string" ? msg : JSON.stringify(msg));
     } finally {
       setSubmitting(false);
     }
@@ -980,7 +1008,42 @@ export default function MentorDashboard() {
                                 </div>
                               )}
 
+<<<<<<< Updated upstream
                               <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+=======
+                              {/* Attachment fayl */}
+                              {lesson.attachment_url && (
+                                <div>
+                                  <span className="text-[11px] font-bold text-[var(--gold)] uppercase tracking-wider block mb-1">
+                                    Yuklangan Material:
+                                  </span>
+                                  <a
+                                    href={lesson.attachment_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    download
+                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[var(--gold)]/8 border border-[var(--gold)]/20 hover:bg-[var(--gold)]/15 transition-all group"
+                                  >
+                                    <div className="w-8 h-8 rounded-lg bg-[var(--gold)]/10 border border-[var(--gold)]/25 flex items-center justify-center shrink-0">
+                                      {(lesson.attachment_name || lesson.attachment_url).match(/\.(jpg|jpeg|png)$/i) ? (
+                                        <ImageIcon size={14} className="text-[var(--gold)]" />
+                                      ) : (
+                                        <FileText size={14} className="text-[var(--gold)]" />
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[11px] font-bold text-[var(--text-primary)] truncate">
+                                        {lesson.attachment_name || "Material yuklab olish"}
+                                      </p>
+                                      <p className="text-[10px] text-[var(--text-muted)]">Bosib yuklab oling</p>
+                                    </div>
+                                    <Download size={13} className="text-[var(--gold)] opacity-60 group-hover:opacity-100 shrink-0" />
+                                  </a>
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between pt-2">
+>>>>>>> Stashed changes
                                 <span className="text-[11px] text-[var(--text-muted)]">
                                   Slug: <code className="text-[var(--gold)]">{lesson.slug}</code>
                                 </span>
@@ -1469,13 +1532,14 @@ export default function MentorDashboard() {
       {/* ===================== MODAL 2: ADD LESSON ===================== */}
       {showCreateLessonModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="lux-card !p-6 sm:!p-8 !bg-[var(--bg-panel)] w-full max-w-lg rounded-3xl border border-[var(--gold)]/30 shadow-2xl relative">
+          <div className="lux-card !p-6 sm:!p-8 !bg-[var(--bg-panel)] w-full max-w-xl rounded-3xl border border-[var(--gold)]/30 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-serif font-black text-lg text-[var(--text-primary)]">
-                Yangi Darslik Qo'shish
-              </h3>
+              <div>
+                <h3 className="font-serif font-black text-lg text-[var(--text-primary)]">Yangi Darslik Qo'shish</h3>
+                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">PDF, DOCX, JPG, PNG fayl yuklash mumkin (max 20MB)</p>
+              </div>
               <button
-                onClick={() => setShowCreateLessonModal(false)}
+                onClick={() => { setShowCreateLessonModal(false); setLessonFile(null); }}
                 className="text-gray-400 hover:text-[var(--text-primary)] text-sm font-bold"
               >
                 ✕
@@ -1541,10 +1605,97 @@ export default function MentorDashboard() {
                 />
               </div>
 
+              {/* ─── FAYL YUKLASH ─────────────────────────────────────────── */}
+              <div>
+                <label className="text-xs font-bold text-[var(--text-muted)] block mb-2">
+                  Qo'shimcha Material (ixtiyoriy):
+                </label>
+
+                {/* Drop Zone */}
+                <div
+                  onClick={() => lessonFileInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setLessonFileDrag(true); }}
+                  onDragLeave={() => setLessonFileDrag(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setLessonFileDrag(false);
+                    const file = e.dataTransfer.files[0];
+                    if (file) {
+                      const allowed = ['.pdf', '.docx', '.doc', '.jpg', '.jpeg', '.png'];
+                      const ext = '.' + file.name.split('.').pop().toLowerCase();
+                      if (!allowed.includes(ext)) {
+                        alert(`Ruxsat etilmagan format. Faqat: ${allowed.join(', ')}`);
+                        return;
+                      }
+                      if (file.size > 20 * 1024 * 1024) {
+                        alert('Fayl hajmi 20MB dan oshmasligi kerak.');
+                        return;
+                      }
+                      setLessonFile(file);
+                    }
+                  }}
+                  className={`relative border-2 border-dashed rounded-2xl p-5 cursor-pointer transition-all text-center ${
+                    lessonFileDrag
+                      ? 'border-[var(--gold)] bg-[var(--gold)]/10'
+                      : lessonFile
+                        ? 'border-emerald-500/60 bg-emerald-500/5'
+                        : 'border-[var(--border-glass)] hover:border-[var(--gold)]/50 bg-[var(--bg-void)]/40'
+                  }`}
+                >
+                  <input
+                    ref={lessonFileInputRef}
+                    type="file"
+                    accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) setLessonFile(file);
+                    }}
+                  />
+
+                  {lessonFile ? (
+                    // Fayl tanlanganda preview
+                    <div className="flex items-center gap-3 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                        {lessonFile.name.match(/\.(jpg|jpeg|png)$/i) ? (
+                          <ImageIcon size={18} className="text-emerald-500" />
+                        ) : (
+                          <FileText size={18} className="text-emerald-500" />
+                        )}
+                      </div>
+                      <div className="text-left min-w-0">
+                        <p className="text-xs font-bold text-[var(--text-primary)] truncate max-w-[200px]">{lessonFile.name}</p>
+                        <p className="text-[10px] text-emerald-600 font-semibold">
+                          {(lessonFile.size / 1024).toFixed(0)} KB • Fayl tanlandi ✓
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setLessonFile(null); if(lessonFileInputRef.current) lessonFileInputRef.current.value = ''; }}
+                        className="ml-auto text-red-400 hover:text-red-600 text-[10px] font-bold shrink-0"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    // Fayl tanlanmagan — drag & drop ko'rsatish
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--gold)]/10 border border-[var(--gold)]/25 flex items-center justify-center">
+                        <Upload size={18} className="text-[var(--gold)]" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-[var(--text-primary)]">Fayl yuklash uchun bosing yoki sudrab tashlang</p>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">PDF, DOCX, DOC, JPG, PNG • Max 20MB</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="flex items-center gap-3 pt-3">
                 <button
                   type="button"
-                  onClick={() => setShowCreateLessonModal(false)}
+                  onClick={() => { setShowCreateLessonModal(false); setLessonFile(null); }}
                   className="flex-1 py-2.5 rounded-xl border border-[var(--border-glass)] text-xs font-bold text-[var(--text-muted)] hover:bg-[var(--bg-void)]"
                 >
                   Bekor qilish
@@ -1552,9 +1703,13 @@ export default function MentorDashboard() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 rounded-xl bg-[var(--gold)] text-white text-xs font-bold shadow-md hover:brightness-105 disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--gold)] text-white text-xs font-bold shadow-md hover:brightness-105 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {submitting ? "Qo'shilmoqda..." : "Darsni Saqlash"}
+                  {submitting ? (
+                    <><span className="animate-spin">⟳</span> Saqlanmoqda...</>
+                  ) : (
+                    <><Paperclip size={13} /> Darsni Saqlash</>
+                  )}
                 </button>
               </div>
             </form>

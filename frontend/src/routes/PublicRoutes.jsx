@@ -9,6 +9,7 @@ import SimulationPage from "../components/Simulation/SimulationPage";
 import StudentDashboard from "../components/StudentDashboard/StudentDashboard";
 import MentorDashboard from "../components/MentorDashboard/MentorDashboard";
 import PrivateRoute from "../components/Safety/ProtectedRoute";
+import MentorLabEntry from "../components/Authorized/MentorLabEntry";
 
 export const PublicRoutes = (
   <>
@@ -21,6 +22,9 @@ export const PublicRoutes = (
 
     {/* CRM Tizimi uchun alohida kirish sahifasi (admin/mentor/super_admin) */}
     <Route path="/crm/login" element={<CRMLogin />} />
+
+    {/* CRM → Lab: Admin tomonidan mentor uchun parolsiz kirish */}
+    <Route path="/mentor-lab-entry" element={<MentorLabEntry />} />
 
     {/* Protected AI Dashboards — student va mentor rollari uchun */}
     <Route element={<PrivateRoute allowed={["student", "mentor", "admin", "super_admin"]} />}>

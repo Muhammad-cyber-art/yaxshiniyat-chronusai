@@ -97,6 +97,16 @@ class LessonListCreateView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
     permission_classes = [AllowAny]
     pagination_class = None
+    parser_classes = [
+        __import__('rest_framework.parsers', fromlist=['MultiPartParser']).MultiPartParser,
+        __import__('rest_framework.parsers', fromlist=['FormParser']).FormParser,
+        __import__('rest_framework.parsers', fromlist=['JSONParser']).JSONParser,
+    ]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
     def get_queryset(self):
         qs = Lesson.objects.filter(is_published=True).select_related("course").order_by("course", "sort_order")
@@ -127,7 +137,18 @@ class LessonListCreateView(generics.ListCreateAPIView):
             slug = f"{base_slug}-{idx}"
             idx += 1
 
-        serializer.save(course=course, slug=slug, is_published=True)
+        # Fayl nomini original nom bilan saqlash
+        attachment = self.request.FILES.get("attachment")
+        attachment_name = ""
+        if attachment:
+            attachment_name = attachment.name
+
+        serializer.save(
+            course=course,
+            slug=slug,
+            is_published=True,
+            attachment_name=attachment_name if attachment_name else serializer.validated_data.get("attachment_name", ""),
+        )
 
 
 class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -135,6 +156,17 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = LessonSerializer
     lookup_field = "slug"
     permission_classes = [AllowAny]
+    parser_classes = [
+        __import__('rest_framework.parsers', fromlist=['MultiPartParser']).MultiPartParser,
+        __import__('rest_framework.parsers', fromlist=['FormParser']).FormParser,
+        __import__('rest_framework.parsers', fromlist=['JSONParser']).JSONParser,
+    ]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
 
 
 class StudyGroupListCreateView(generics.ListCreateAPIView):

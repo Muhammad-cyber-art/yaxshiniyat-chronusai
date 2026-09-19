@@ -4,7 +4,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     RegisterViewSet, LoginView, UsersListView, CurrentUserView,
-    BranchAccessViewSet, PublicRegisterView, GoogleAuthView, CRMLoginView
+    BranchAccessViewSet, PublicRegisterView, GoogleAuthView, CRMLoginView,
+    MentorLabTokenView
 )
 
 router = DefaultRouter()
@@ -21,4 +22,6 @@ urlpatterns = [
     path('refresh/', TokenRefreshView.as_view(), name='refresh'),
     path('users/', UsersListView.as_view(), name='users-list'),  # Umumiy ro'yxat (filtrlash mumkin)
     path('user/me/', CurrentUserView.as_view(), name='current-user'),
-]
+    # CRM → Lab: Mentor uchun parolsiz kirish tokeni (faqat admin/super_admin chaqira oladi)
+    path('mentor-lab-token/<int:user_id>/', MentorLabTokenView.as_view(), name='mentor-lab-token'),
+]

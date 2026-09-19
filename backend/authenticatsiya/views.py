@@ -620,3 +620,78 @@ class GoogleAuthView(APIView):
             }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"detail": f"Google orqali kirishda xatolik yuz berdi: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MentorLabTokenView(APIView):
+    """
+    CRM dan laboratoriyaga (Mentor Dashboard) avtomatik parolsiz kirish uchun token generatsiyasi.
+    
+    Faqat admin yoki super_admin bu endpointni chaqira oladi.
+    Mentor uchun JWT access + refresh token yaratib qaytaradi.
+    Mentor parolini bilmasdan ham o'z dashboard labaratoriyasiga kira oladi.
+    
+    POST /api/mentor-lab-token/{user_id}/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, user_id):
+        requester = request.user
+
+        # Faqat admin va super_admin chaqira oladi
+        if requester.role not in ['admin', 'super_admin']:
+            return Response(
+                {"detail": "Bu amal faqat admin yoki super_admin uchun ruxsat etilgan."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Mentor foydalanuvchini topish
+        try:
+            mentor = User.objects.get(id=user_id, role='mentor')
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Mentor topilmadi yoki bu foydalanuvchi mentor emas."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Admin faqat o'z filialidagi mentorlarni chaqira oladi
+        if requester.role == 'admin':
+            allowed_branches = list(requester.branch_accesses.values_list('branch_id', flat=True))
+            if requester.branch_id:
+                allowed_branches.append(requester.branch_id)
+
+            # Mentorning filialini tekshiramiz
+            mentor_branches = list(mentor.branch_accesses.values_list('branch_id', flat=True))
+            if mentor.branch_id:
+                mentor_branches.append(mentor.branch_id)
+
+            # Umumiy filial bo'lishi kerak
+            if not set(allowed_branches) & set(mentor_branches):
+                return Response(
+                    {"detail": "Siz bu mentorning filialida admin emassiz."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # Mentor faolligini tekshirish
+        if not mentor.is_active:
+            return Response(
+                {"detail": "Bu mentor hisobi faol emas. Avval faollashtiring."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # JWT token generatsiya qilish
+        token = LoginSerializer.get_token(mentor)
+
+        return Response({
+            "detail": f"{mentor.get_full_name() or mentor.username} uchun laboratoriya tokeni yaratildi.",
+            "access": str(token.access_token),
+            "refresh": str(token),
+            "mentor": {
+                "id": mentor.id,
+                "username": mentor.username,
+                "first_name": mentor.first_name,
+                "last_name": mentor.last_name,
+                "role": mentor.role,
+                "branch_id": mentor.branch.id if mentor.branch else None,
+                "branch_name": mentor.branch.name if mentor.branch else None,
+            }
+        }, status=status.HTTP_200_OK)

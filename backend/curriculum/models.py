@@ -3,6 +3,32 @@ from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
+
+
+def validate_lesson_file(value):
+    """Ruxsat etilgan fayl formatlarini tekshiradi: PDF, DOCX, JPG, PNG"""
+    import os
+    allowed_extensions = ['.pdf', '.docx', '.doc', '.jpg', '.jpeg', '.png']
+    ext = os.path.splitext(value.name)[1].lower()
+    if ext not in allowed_extensions:
+        raise ValidationError(
+            f"Ruxsat etilmagan fayl formati: {ext}. "
+            f"Faqat quyidagilar qabul qilinadi: {', '.join(allowed_extensions)}"
+        )
+    # Maksimal fayl hajmi: 20MB
+    max_size = 20 * 1024 * 1024
+    if value.size > max_size:
+        raise ValidationError("Fayl hajmi 20MB dan oshmasligi kerak.")
+
+
+def lesson_attachment_path(instance, filename):
+    """Fayl saqlash yo'li: media/lessons/{course_id}/{filename}"""
+    import os
+    ext = os.path.splitext(filename)[1].lower()
+    safe_name = f"{instance.slug or 'lesson'}{ext}"
+    return f"lessons/{instance.course_id}/{safe_name}"
+
 
 
 class DifficultyLevel(models.TextChoices):

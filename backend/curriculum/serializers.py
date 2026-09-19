@@ -15,6 +15,9 @@ class LessonSerializer(serializers.ModelSerializer):
     )
     course_title = serializers.CharField(source="course.title", read_only=True)
     slug = serializers.CharField(required=False, allow_blank=True)
+    attachment = serializers.FileField(required=False, allow_null=True)
+    attachment_url = serializers.SerializerMethodField(read_only=True)
+    attachment_name = serializers.CharField(read_only=True)
 
     class Meta:
         model = Lesson
@@ -29,8 +32,20 @@ class LessonSerializer(serializers.ModelSerializer):
             "reading_time_minutes",
             "sort_order",
             "is_published",
+            "attachment",
+            "attachment_url",
+            "attachment_name",
         ]
         validators = []  # Handled programmatically in create()
+
+    def get_attachment_url(self, obj):
+        """Faylning to'liq URL sini qaytaradi"""
+        if obj.attachment:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.attachment.url)
+            return obj.attachment.url
+        return None
 
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, "copy") else dict(data)
@@ -59,7 +74,27 @@ class LessonSerializer(serializers.ModelSerializer):
         validated_data["slug"] = slug
         validated_data["is_published"] = True
 
+        # Original fayl nomini saqlash
+        attachment = validated_data.get("attachment")
+        if attachment:
+            import os
+            validated_data["attachment_name"] = getattr(attachment, "name", "").split("/")[-1]
+
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        attachment = validated_data.get("attachment")
+        if attachment:
+            import os
+            validated_data["attachment_name"] = getattr(attachment, "name", "").split("/")[-1]
+            # Eski faylni o'chirish
+            if instance.attachment:
+                try:
+                    instance.attachment.delete(save=False)
+                except Exception:
+                    pass
+        return super().update(instance, validated_data)
+
 
 
 class CourseSerializer(serializers.ModelSerializer):
