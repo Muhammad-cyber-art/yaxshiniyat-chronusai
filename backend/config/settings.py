@@ -409,8 +409,8 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760
 
 # ─── CHRONOS AI / GEMINI CONFIGURATION ────────────────────────────────────────
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-AI_BASE_URL = os.getenv("AI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
-AI_CHAT_MODEL = os.getenv("AI_CHAT_MODEL", "gemini-2.5-flash")
+AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.openai.com/v1")
+AI_CHAT_MODEL = os.getenv("AI_CHAT_MODEL", "gpt-4o-mini")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "3072"))
 AI_MAX_TOKENS = int(os.getenv("AI_MAX_TOKENS", "2048"))

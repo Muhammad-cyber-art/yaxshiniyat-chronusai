@@ -29,11 +29,18 @@ import {
   Edit,
   BarChart3,
   Check,
-  X
+  X,
+  Copy,
+  FlaskConical,
+  Scale,
+  Activity,
+  Atom
 } from "lucide-react";
 import ThemeToggle from "../ThemeToggle";
 import { get_user_info } from "../Authorized/getRole";
 import api from "../../tokenUpdater/updater";
+import PeriodicTableModal from "../Simulation/PeriodicTableModal";
+import { PERIODIC_ELEMENTS, CATEGORY_COLORS } from "../Simulation/periodicTableData";
 
 export default function MentorDashboard() {
   const navigate = useNavigate();
@@ -55,9 +62,33 @@ export default function MentorDashboard() {
   const [showCreateLessonModal, setShowCreateLessonModal] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [showGenerateSimModal, setShowGenerateSimModal] = useState(false);
+  const [showPeriodicTable, setShowPeriodicTable] = useState(false);
+  const [mendeleyevSearch, setMendeleyevSearch] = useState("");
+  const [mendeleyevCategory, setMendeleyevCategory] = useState("all");
+  const [generatingSim, setGeneratingSim] = useState(false);
+  const [createdInviteModalData, setCreatedInviteModalData] = useState(null);
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const [selectedGroupForStudent, setSelectedGroupForStudent] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [activeCourseLesson, setActiveCourseLesson] = useState(null);
+
+  // AI Simulator Generator Form State
+  const [generateSimForm, setGenerateSimForm] = useState({
+    course_id: "",
+    lesson_id: "",
+    subject_category: "NATURAL_SCIENCE",
+    room_style: "CHEMISTRY_LAB",
+    expected_duration_minutes: 15,
+    max_participants: 4,
+    passing_score: 80,
+    lesson_material_text: "",
+    custom_instructions: "",
+    target_reaction: "HCl + NaOH",
+    required_equivalent_ratio: "1:1 ekvivalent",
+    ask_quantity_and_equivalent: true,
+    enable_explosion_hazard: true,
+  });
 
   // New Course Form State
   const [newCourseForm, setNewCourseForm] = useState({
@@ -174,7 +205,7 @@ export default function MentorDashboard() {
     }
     setSubmitting(true);
     try {
-      const res = await api.post("curriculum/courses/", {
+      await api.post("curriculum/courses/", {
         title: newCourseForm.title.trim(),
         domain_name: newCourseForm.domain_name.trim(),
         difficulty: newCourseForm.difficulty,
@@ -208,7 +239,7 @@ export default function MentorDashboard() {
     if (!newLessonForm.title) return;
     setSubmitting(true);
     try {
-      const res = await api.post("curriculum/lessons/", {
+      await api.post("curriculum/lessons/", {
         course_id: newLessonForm.course_id || (courses[0] ? courses[0].id : undefined),
         title: newLessonForm.title,
         summary: newLessonForm.summary,
@@ -229,6 +260,58 @@ export default function MentorDashboard() {
       alert("Dars qo'shishda xatolik yuz berdi. Iltimos qaytadan urining.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  // 2.1 Handle AI Simulation Room Generator
+  async function handleGenerateSimulation(e) {
+    if (e) e.preventDefault();
+    if (!generateSimForm.course_id) {
+      alert("Iltimos, avval kursni tanlang.");
+      return;
+    }
+    setGeneratingSim(true);
+    try {
+      const chemistryInstructions = generateSimForm.room_style === "CHEMISTRY_LAB" || generateSimForm.subject_category === "NATURAL_SCIENCE"
+        ? `\n[KIMYO REAKSIYA & EKVIVALENT TALABLARI]:\n- Maqsad qilingan to'g'ri reaksiya: ${generateSimForm.target_reaction || 'HCl + NaOH -> NaCl + H2O'}\n- Talab qilinadigan ekvivalent nisbati: ${generateSimForm.required_equivalent_ratio || '1:1 ekvivalent'}\n- Xavfli/noto'g'ri moddalar (masalan, Hg + O2 yoki noto'g'ri aralashma) aralashtirilsa PORTLASH (explosion) effekti sodir bo'lishi: ${generateSimForm.enable_explosion_hazard ? 'HA (PORTLASH XAVFI BOR)' : 'YOQ'}\n- O'quvchidan miqdor (mol) va ekvivalent so'ralishi: ${generateSimForm.ask_quantity_and_equivalent ? 'HA' : 'YOQ'}`
+        : "";
+
+      const res = await api.post("simulations/generate-case/", {
+        course_id: generateSimForm.course_id,
+        lesson_id: generateSimForm.lesson_id || null,
+        room_style: generateSimForm.room_style || "CUSTOM",
+        expected_duration_minutes: Number(generateSimForm.expected_duration_minutes) || 15,
+        max_participants: Number(generateSimForm.max_participants) || 4,
+        passing_score: Number(generateSimForm.passing_score) || 70,
+        lesson_material_text: generateSimForm.lesson_material_text || "",
+        custom_instructions: `${generateSimForm.custom_instructions || ""}${chemistryInstructions}`,
+        reaction_rules: {
+          target_reaction: generateSimForm.target_reaction,
+          required_equivalent_ratio: generateSimForm.required_equivalent_ratio,
+          enable_explosion_hazard: generateSimForm.enable_explosion_hazard,
+          ask_quantity_and_equivalent: generateSimForm.ask_quantity_and_equivalent,
+        }
+      });
+
+      const caseData = res.data?.data?.case;
+      const roomData = res.data?.data?.room;
+      const inviteUrl = `${window.location.origin}/simulation?roomId=${roomData?.id || ''}&caseId=${caseData?.id || ''}`;
+
+      triggerToast(`AI Simulyator "${caseData?.title || 'Xona'}" muvaffaqiyatli yaratildi!`);
+      setShowGenerateSimModal(false);
+      await fetchMentorData();
+
+      setCreatedInviteModalData({
+        case: caseData,
+        room: roomData,
+        inviteUrl: inviteUrl,
+      });
+    } catch (err) {
+      console.error("Generate simulation error:", err);
+      const msg = err.response?.data?.error?.message || err.response?.data?.detail || "AI Simulyator yaratishda xatolik yuz berdi.";
+      alert(typeof msg === "string" ? msg : JSON.stringify(msg));
+    } finally {
+      setGeneratingSim(false);
     }
   }
 
@@ -464,15 +547,30 @@ export default function MentorDashboard() {
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-3 shrink-0">
+            {/* Button to Create AI Simulator */}
+            <button
+              onClick={() => {
+                if (courses.length > 0 && !generateSimForm.course_id) {
+                  setGenerateSimForm((prev) => ({ ...prev, course_id: courses[0].id }));
+                }
+                setShowGenerateSimModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-gradient-to-r from-amber-600 to-[#967b4f] hover:brightness-110 text-white text-xs font-bold shadow-md transition-all active:scale-95"
+              title="Yangi AI Simulyator xonasi generatsiya qilish"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+              <span className="hidden sm:inline">+ Simulyator Yaratish</span>
+            </button>
+
             {/* Direct Link to AI Lab Simulator */}
             <Link
               to="/simulation"
               style={{ color: "#ffffff" }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#967b4f] hover:bg-[#806740] text-white text-xs font-bold shadow-md transition-all active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#967b4f] hover:bg-[#806740] text-white text-xs font-bold shadow-md transition-all active:scale-95"
             >
               <Sparkles className="w-3.5 h-3.5 text-white" />
               <span className="hidden sm:inline" style={{ color: "#ffffff" }}>
-                AI Simulyator
+                AI Sahnalar
               </span>
             </Link>
 
@@ -882,17 +980,41 @@ export default function MentorDashboard() {
                                 </div>
                               )}
 
-                              <div className="flex items-center justify-between pt-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
                                 <span className="text-[11px] text-[var(--text-muted)]">
                                   Slug: <code className="text-[var(--gold)]">{lesson.slug}</code>
                                 </span>
-                                <Link
-                                  to={`/simulation?courseId=${selectedCourse.id}&lessonId=${lesson.id}`}
-                                  className="px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-900 hover:bg-amber-500/25 text-[11px] font-bold flex items-center gap-1.5 transition-all"
-                                >
-                                  <Sparkles className="w-3 h-3 text-[#967b4f]" />
-                                  <span>Simulyator Keysi</span>
-                                </Link>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const dName = (selectedCourse?.domain_name || "").toLowerCase();
+                                      const style = dName.includes("kimyo") ? "CHEMISTRY_LAB" : (dName.includes("sud") || dName.includes("huquq")) ? "COURTROOM" : dName.includes("tibbiy") ? "MEDICAL_ER" : dName.includes("kiber") ? "CYBER_DEFENSE" : "CUSTOM";
+                                      setGenerateSimForm({
+                                        course_id: selectedCourse.id,
+                                        lesson_id: lesson.id,
+                                        room_style: style,
+                                        expected_duration_minutes: 15,
+                                        max_participants: 4,
+                                        passing_score: 80,
+                                        lesson_material_text: lesson.content || lesson.summary || "",
+                                        custom_instructions: "",
+                                      });
+                                      setShowGenerateSimModal(true);
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-[#967b4f] text-white hover:brightness-110 text-[11px] font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                                  >
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    <span>AI Simulyator Yaratish</span>
+                                  </button>
+                                  <Link
+                                    to={`/simulation?courseId=${selectedCourse.id}&lessonId=${lesson.id}`}
+                                    className="px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-900 hover:bg-amber-500/25 text-[11px] font-bold flex items-center gap-1.5 transition-all"
+                                  >
+                                    <span>Keyslar</span>
+                                  </Link>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -1440,6 +1562,188 @@ export default function MentorDashboard() {
         </div>
       )}
 
+      {/* ===================== MODAL 2.1: AI SIMULATOR ROOM GENERATOR ===================== */}
+      {showGenerateSimModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in overflow-y-auto">
+          <div className="lux-card !p-6 sm:!p-8 !bg-[var(--bg-panel)] w-full max-w-2xl rounded-3xl border border-amber-500/40 shadow-2xl relative my-8">
+            <div className="flex items-center justify-between mb-4 border-b border-[var(--border-glass)] pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-[#967b4f] p-2 flex items-center justify-center text-white shadow-md">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-black text-lg text-[var(--text-primary)]">
+                    AI Simulyator Xonasi Yaratish
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    Elektron darslik matni asosida interaktiv storyline, rollar va ilmiy reaksiyalar generatsiyasi
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGenerateSimModal(false)}
+                className="text-gray-400 hover:text-[var(--text-primary)] text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleGenerateSimulation} className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                    Kurs:
+                  </label>
+                  <select
+                    value={generateSimForm.course_id}
+                    onChange={(e) => setGenerateSimForm({ ...generateSimForm, course_id: e.target.value })}
+                    className="lux-input !py-2.5 !px-3.5 w-full text-xs cursor-pointer"
+                  >
+                    <option value="">Kursni tanlang...</option>
+                    {courses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                    Simulyator Xonasi Uslubi (Style):
+                  </label>
+                  <select
+                    value={generateSimForm.room_style}
+                    onChange={(e) => setGenerateSimForm({ ...generateSimForm, room_style: e.target.value })}
+                    className="lux-input !py-2.5 !px-3.5 w-full text-xs cursor-pointer font-bold text-amber-900"
+                  >
+                    <option value="CHEMISTRY_LAB">🧪 Kimyo Laboratoriyasi (Reaksiyalar & Xavfsizlik)</option>
+                    <option value="COURTROOM">⚖️ Sud Zali (Sudya, Prokuror, Advokat, Guvoh)</option>
+                    <option value="MEDICAL_ER">🩺 Tibbiy Reanimatsiya (Jarroh, Shifokor)</option>
+                    <option value="CYBER_DEFENSE">🛡️ Kiber-Xavfsizlik Markazi (SOC Tahlilchi)</option>
+                    <option value="CUSTOM">🎭 Umumiy / Erkin Simulyatsiya</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                    Vaqt (daqiqa):
+                  </label>
+                  <input
+                    type="number"
+                    min="3"
+                    max="120"
+                    value={generateSimForm.expected_duration_minutes}
+                    onChange={(e) => setGenerateSimForm({ ...generateSimForm, expected_duration_minutes: e.target.value })}
+                    className="lux-input !py-2.5 !px-3 w-full text-xs font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                    Maksimal Ball:
+                  </label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="100"
+                    value={generateSimForm.passing_score}
+                    onChange={(e) => setGenerateSimForm({ ...generateSimForm, passing_score: e.target.value })}
+                    className="lux-input !py-2.5 !px-3 w-full text-xs font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                    Xona Sig'imi (Rollar):
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="12"
+                    value={generateSimForm.max_participants}
+                    onChange={(e) => setGenerateSimForm({ ...generateSimForm, max_participants: e.target.value })}
+                    className="lux-input !py-2.5 !px-3 w-full text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-[var(--text-muted)]">
+                    Darslikning Elektron Matni / Mavzu Tafsilotlari:
+                  </label>
+                  <span className="text-[10px] text-amber-700 font-bold bg-amber-500/10 px-2 py-0.5 rounded">
+                    AI ushbu matndan hikoya va reaksiyalarni yaratadi
+                  </span>
+                </div>
+                <textarea
+                  rows={5}
+                  placeholder="Dars matnini shu yerga kiriting yoki elektron darslikdan nusxa oling (Masalan kimyo bo'lsa: HCl kislotasi va NaOH reaksiyasi, hosil bo'ladigan tuzlar...)"
+                  value={generateSimForm.lesson_material_text}
+                  onChange={(e) => setGenerateSimForm({ ...generateSimForm, lesson_material_text: e.target.value })}
+                  className="lux-input !py-2.5 !px-3.5 w-full text-xs font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[var(--text-muted)] block mb-1">
+                  AI Uchun Qo'shimcha Ko'rsatma (Ixtiyoriy):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Masalan: Reagentlar xavfsizligiga ko'proq urg'u berilsin va kutilmagan favqulodda vaziyat qo'shilsin..."
+                  value={generateSimForm.custom_instructions}
+                  onChange={(e) => setGenerateSimForm({ ...generateSimForm, custom_instructions: e.target.value })}
+                  className="lux-input !py-2.5 !px-3.5 w-full text-xs"
+                />
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                  <span>AI Avtomatik Tizim Kafolati:</span>
+                </div>
+                <p className="text-[11px] leading-relaxed">
+                  1. Agar 1-xona to'lsa, yangi o'quvchilar uchun avtomatik tarzda yangi xonalar (Multi-Room) paydo bo'ladi.<br/>
+                  2. Agar talabalar soni yetishmasa, AI bo'sh qolgan rollarni (masalan Prokuror yoki Tahlilchi) o'z zimmasiga oladi.<br/>
+                  3. Kimyoviy moddalar qo'shilganda yoki sud dalillari kiritilganda AI reaksiya formulasi va effektini avtomatik chiqaradi.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowGenerateSimModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-[var(--border-glass)] text-xs font-bold text-[var(--text-muted)] hover:bg-[var(--bg-void)]"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  disabled={generatingSim}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-600 via-[#967b4f] to-amber-700 text-white text-xs font-black shadow-lg shadow-amber-500/25 hover:brightness-110 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {generatingSim ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>AI Simulyator Yaratmoqda (OpenAI)...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Simulyatorni Generatsiya Qilish</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ===================== MODAL 3: CREATE CHRONOUS GROUP ===================== */}
       {showCreateGroupModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
@@ -1610,6 +1914,700 @@ export default function MentorDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== MODAL 5: GENERATE AI SIMULATOR (WITH SUBJECT CATEGORY) ===================== */}
+      {showGenerateSimModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in overflow-y-auto">
+          <div className="lux-card !p-6 sm:!p-8 !bg-[var(--bg-panel)] w-full max-w-xl rounded-3xl border border-[var(--gold)]/40 shadow-2xl relative my-8">
+            <div className="flex items-center justify-between mb-4 border-b border-[var(--border-glass)] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-[#967b4f] flex items-center justify-center text-white shadow-md">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-black text-base sm:text-lg text-[var(--text-primary)]">
+                    AI Simulyator Yaratish
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    Darslik matnidan to'liq o'yin sahnasi va interaktiv tajriba yaratish
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGenerateSimModal(false)}
+                className="text-gray-400 hover:text-[var(--text-primary)] p-1.5 rounded-full hover:bg-[var(--bg-void)]"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleGenerateSimulation} className="space-y-4 text-xs">
+              {/* 1. Kurs va Darslik Tanlash */}
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-[var(--text-muted)] block mb-1">
+                    Tegishli O'quv Kursi: *
+                  </label>
+                  <select
+                    required
+                    value={generateSimForm.course_id}
+                    onChange={(e) => {
+                      const cId = e.target.value;
+                      setGenerateSimForm({
+                        ...generateSimForm,
+                        course_id: cId,
+                        lesson_id: "",
+                      });
+                    }}
+                    className="lux-input !py-2.5 !px-3 w-full text-xs font-semibold"
+                  >
+                    <option value="">-- Kursni tanlang --</option>
+                    {courses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-[var(--text-muted)] block mb-1">
+                    Darslik / Mavzu (ixtiyoriy):
+                  </label>
+                  <select
+                    value={generateSimForm.lesson_id}
+                    onChange={(e) => {
+                      const lId = e.target.value;
+                      const lessonObj = lessons.find((l) => l.id === lId);
+                      setGenerateSimForm({
+                        ...generateSimForm,
+                        lesson_id: lId,
+                        lesson_material_text: lessonObj?.summary || generateSimForm.lesson_material_text,
+                      });
+                    }}
+                    className="lux-input !py-2.5 !px-3 w-full text-xs font-semibold"
+                  >
+                    <option value="">-- Kurs bo'yicha umumiy keys --</option>
+                    {lessons
+                      .filter((l) => !generateSimForm.course_id || l.course === generateSimForm.course_id || l.course_id === generateSimForm.course_id)
+                      .map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.title}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* 2. Fan Yo'nalishi / Bo'limi (User Explicit Request!) */}
+              <div>
+                <label className="font-bold text-[var(--text-muted)] block mb-1.5">
+                  Fan Yo'nalishi va Simulyator Turi: *
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    {
+                      id: "NATURAL_SCIENCE",
+                      style: "CHEMISTRY_LAB",
+                      title: "Tabiiy Fanlar",
+                      desc: "Kimyo, Biologiya, Fizika",
+                      icon: FlaskConical,
+                      color: "border-amber-500/50 bg-amber-500/10 text-amber-900",
+                    },
+                    {
+                      id: "EXACT_SCIENCE",
+                      style: "CYBER_DEFENSE",
+                      title: "Aniq Fanlar",
+                      desc: "Kiber, Algoritm, Shifr",
+                      icon: ShieldCheck,
+                      color: "border-emerald-500/50 bg-emerald-500/10 text-emerald-900",
+                    },
+                    {
+                      id: "HUMANITIES",
+                      style: "COURTROOM",
+                      title: "Gumanitar Fanlar",
+                      desc: "Sud zali, Huquq, Tarix",
+                      icon: Scale,
+                      color: "border-indigo-500/50 bg-indigo-500/10 text-indigo-900",
+                    },
+                    {
+                      id: "MEDICAL",
+                      style: "MEDICAL_ER",
+                      title: "Tibbiyot Fanlari",
+                      desc: "Klinik tashxis, Yordam",
+                      icon: Activity,
+                      color: "border-rose-500/50 bg-rose-500/10 text-rose-900",
+                    },
+                  ].map((cat) => {
+                    const isSelected = generateSimForm.room_style === cat.style;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setGenerateSimForm({
+                            ...generateSimForm,
+                            subject_category: cat.id,
+                            room_style: cat.style,
+                          });
+                        }}
+                        className={`p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                          isSelected
+                            ? "border-[var(--gold)] ring-2 ring-[var(--gold)]/40 bg-[var(--gold)]/15 shadow-md"
+                            : "border-[var(--border-glass)] hover:border-[var(--gold)]/40 bg-[var(--bg-void)] opacity-80"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          {React.createElement(cat.icon, { className: "w-4 h-4 text-[var(--gold)]" })}
+                          {isSelected && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
+                        </div>
+                        <div className="font-bold text-[11px] text-[var(--text-primary)] leading-tight">
+                          {cat.title}
+                        </div>
+                        <div className="text-[9px] text-[var(--text-muted)] mt-0.5">
+                          {cat.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2.1 Aniq Fan / Tabiiy Fan (Kimyo) Sinov Natija & Mendeleyev Jadvali Sozlamalari */}
+              {(generateSimForm.room_style === "CHEMISTRY_LAB" ||
+                generateSimForm.subject_category === "NATURAL_SCIENCE" ||
+                generateSimForm.subject_category === "EXACT_SCIENCE") && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3 animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Atom className="w-4 h-4 text-amber-500 animate-spin-slow" />
+                      <span className="font-bold text-xs text-[var(--gold)]">
+                        Kimyoviy Reaksiya & Mendeleyev Jadvali Sinovi
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPeriodicTable(true)}
+                      className="px-2.5 py-1 rounded-xl bg-amber-500/25 hover:bg-amber-500/40 text-amber-900 font-black text-[11px] border border-amber-500/40 flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                      <Atom className="w-3.5 h-3.5" />
+                      <span>🧪 Mendeleyev Jadvalini Ko'rish</span>
+                    </button>
+                  </div>
+
+                  {/* Reaksiya Formula Quruvchisi va Boshqaruv Tugmalari */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-[11px] text-[var(--text-muted)] block">
+                        To'g'ri Reaksiya / Kutilgan Moddalar Formulasi: *
+                      </label>
+                      <div className="flex items-center gap-1 text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGenerateSimForm((prev) => {
+                              const cur = (prev.target_reaction || "").trim();
+                              if (!cur) return prev;
+                              return { ...prev, target_reaction: `${cur} + ` };
+                            });
+                          }}
+                          className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/40 text-amber-900 dark:text-amber-300 font-black border border-amber-500/30"
+                        >
+                          + Qo'shish
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGenerateSimForm((prev) => {
+                              const cur = (prev.target_reaction || "").trim();
+                              if (!cur) return prev;
+                              return { ...prev, target_reaction: `${cur} ➔ ` };
+                            });
+                          }}
+                          className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/40 text-amber-900 dark:text-amber-300 font-black border border-amber-500/30"
+                        >
+                          ➔ Natija
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGenerateSimForm((prev) => {
+                              const cur = (prev.target_reaction || "").trim();
+                              if (!cur) return prev;
+                              const parts = cur.split(" ");
+                              parts.pop();
+                              return { ...prev, target_reaction: parts.join(" ") };
+                            });
+                          }}
+                          className="px-2 py-0.5 rounded-lg bg-gray-500/20 hover:bg-gray-500/30 text-gray-700 dark:text-gray-300 font-bold border border-gray-500/30"
+                        >
+                          ⌫
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setGenerateSimForm({ ...generateSimForm, target_reaction: "" })}
+                          className="px-2 py-0.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-700 dark:text-red-300 font-bold border border-red-500/30"
+                        >
+                          Tozalash
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Elementlar yoki tayyor moddalarni bosib tanlang (masalan: HCl + NaOH ➔ NaCl + H2O)..."
+                        value={generateSimForm.target_reaction}
+                        onChange={(e) =>
+                          setGenerateSimForm({
+                            ...generateSimForm,
+                            target_reaction: e.target.value,
+                          })
+                        }
+                        className="lux-input !py-2 !px-3 w-full text-xs font-mono font-bold tracking-wide"
+                      />
+                    </div>
+
+                    {/* Tezkor namunalar */}
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                      <span className="text-[var(--text-muted)] font-semibold">Namunalar:</span>
+                      {[
+                        { title: "HCl + NaOH ➔ NaCl + H2O", label: "Kislota + Ishqor" },
+                        { title: "Hg + O2 ➔ 2HgO", label: "Simob + Kislorod (Portlash)" },
+                        { title: "Zn + 2HCl ➔ ZnCl2 + H2", label: "Rux + Kislota" },
+                        { title: "2H2O2 ➔ 2H2O + O2", label: "Peroksid parchalanishi" },
+                      ].map((item) => (
+                        <button
+                          key={item.title}
+                          type="button"
+                          onClick={() => setGenerateSimForm({ ...generateSimForm, target_reaction: item.title })}
+                          className="px-2 py-0.5 rounded-md bg-[var(--bg-void)] hover:bg-amber-500/20 text-[var(--text-muted)] hover:text-amber-900 dark:hover:text-amber-300 border border-[var(--border-glass)] transition-all font-mono"
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* MENDELEYEV DAVRIY JADVALI - INTERAKTIV ELEMENT TANLASH */}
+                    <div className="mt-2.5 p-2.5 rounded-xl bg-black/25 border border-amber-500/25 space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <Atom className="w-3.5 h-3.5 text-amber-500" />
+                          <span className="text-[11px] font-bold text-[var(--gold)]">
+                            Mendeleyev Davriy Jadvali (Elementni bosib tanlang):
+                          </span>
+                        </div>
+
+                        {/* Search in elements */}
+                        <div className="relative">
+                          <Search className="w-3 h-3 absolute left-2 top-2 text-[var(--text-muted)]" />
+                          <input
+                            type="text"
+                            placeholder="Element qidirish (Hg, O, Na, Fe, H)..."
+                            value={mendeleyevSearch}
+                            onChange={(e) => setMendeleyevSearch(e.target.value)}
+                            className="lux-input !py-1 !pl-7 !pr-2 text-[10px] w-48 rounded-lg"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Filter toifasi */}
+                      <div className="flex flex-wrap gap-1 text-[10px]">
+                        {[
+                          { id: "all", label: "Barcha Elementlar" },
+                          { id: "compounds", label: "🧪 Tayyor Moddalar (HCl, NaOH...)" },
+                          { id: "metal", label: "Metallar" },
+                          { id: "nonmetal", label: "Nometallar" },
+                          { id: "halogen", label: "Galogenlar" },
+                          { id: "alkali", label: "Ishqoriy Metallar" },
+                        ].map((tab) => (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setMendeleyevCategory(tab.id)}
+                            className={`px-2 py-0.5 rounded-md border font-semibold transition-all ${
+                              mendeleyevCategory === tab.id
+                                ? "bg-amber-500/30 border-amber-500 text-amber-900 dark:text-amber-200"
+                                : "bg-[var(--bg-void)] border-[var(--border-glass)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                            }`}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Elementlar paneli */}
+                      {mendeleyevCategory === "compounds" ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 max-h-44 overflow-y-auto p-1">
+                          {[
+                            { formula: "HCl", name: "Xlorid kislota", type: "Kislota", color: "border-yellow-500/40 bg-yellow-500/10 text-yellow-800 dark:text-yellow-200" },
+                            { formula: "NaOH", name: "Natriy ishqori", type: "Ishqor", color: "border-sky-500/40 bg-sky-500/10 text-sky-800 dark:text-sky-200" },
+                            { formula: "H2SO4", name: "Sulfat kislota", type: "Kislota", color: "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200" },
+                            { formula: "HNO3", name: "Nitrat kislota", type: "Kislota", color: "border-orange-500/40 bg-orange-500/10 text-orange-800 dark:text-orange-200" },
+                            { formula: "CuSO4", name: "Mis kuporosi", type: "Tuz", color: "border-cyan-500/40 bg-cyan-500/10 text-cyan-800 dark:text-cyan-200" },
+                            { formula: "KMnO4", name: "Kaliy permanganat", type: "Oksidlovchi", color: "border-purple-500/40 bg-purple-500/10 text-purple-800 dark:text-purple-200" },
+                            { formula: "H2O2", name: "Vodorod peroksid", type: "Peroksid", color: "border-rose-500/40 bg-rose-500/10 text-rose-800 dark:text-rose-200" },
+                            { formula: "AgNO3", name: "Kumush nitrat", type: "Tuz", color: "border-slate-500/40 bg-slate-500/10 text-slate-800 dark:text-slate-200" },
+                            { formula: "NaCl", name: "Osh tuzi", type: "Tuz", color: "border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200" },
+                            { formula: "H2O", name: "Distillangan suv", type: "Erituvchi", color: "border-blue-500/40 bg-blue-500/10 text-blue-800 dark:text-blue-200" },
+                          ].map((comp) => (
+                            <button
+                              key={comp.formula}
+                              type="button"
+                              onClick={() => {
+                                setGenerateSimForm((prev) => {
+                                  const cur = (prev.target_reaction || "").trim();
+                                  if (!cur) return { ...prev, target_reaction: comp.formula };
+                                  if (cur.endsWith("+") || cur.endsWith("➔") || cur.endsWith("->")) {
+                                    return { ...prev, target_reaction: `${cur} ${comp.formula}` };
+                                  }
+                                  return { ...prev, target_reaction: `${cur} + ${comp.formula}` };
+                                });
+                                triggerToast(`"${comp.name} (${comp.formula})" reaksiya formulasiga qo'shildi!`);
+                              }}
+                              className={`p-2 rounded-xl border text-left transition-all hover:scale-[1.02] shadow-sm ${comp.color}`}
+                            >
+                              <div className="font-mono font-black text-xs">{comp.formula}</div>
+                              <div className="text-[10px] truncate opacity-90">{comp.name}</div>
+                              <div className="text-[8px] opacity-75">{comp.type}</div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 max-h-48 overflow-y-auto p-1">
+                          {PERIODIC_ELEMENTS.filter((el) => {
+                            const q = mendeleyevSearch.toLowerCase().trim();
+                            const matchSearch =
+                              !q ||
+                              el.symbol.toLowerCase().includes(q) ||
+                              el.name.toLowerCase().includes(q) ||
+                              String(el.number).includes(q);
+                            if (!matchSearch) return false;
+
+                            if (mendeleyevCategory === "metal") {
+                              return ["alkali", "alkaline", "transition", "post-transition"].includes(el.category);
+                            }
+                            if (mendeleyevCategory === "nonmetal") {
+                              return ["nonmetal", "noble"].includes(el.category);
+                            }
+                            if (mendeleyevCategory === "halogen") {
+                              return el.category === "halogen";
+                            }
+                            if (mendeleyevCategory === "alkali") {
+                              return ["alkali", "alkaline"].includes(el.category);
+                            }
+                            return true;
+                          }).map((el) => {
+                            const catStyle = CATEGORY_COLORS[el.category] || {
+                              bg: "bg-amber-500/10",
+                              border: "border-amber-500/30",
+                              text: "text-amber-800 dark:text-amber-300",
+                            };
+                            return (
+                              <button
+                                key={el.number}
+                                type="button"
+                                onClick={() => {
+                                  setGenerateSimForm((prev) => {
+                                    const cur = (prev.target_reaction || "").trim();
+                                    if (!cur) return { ...prev, target_reaction: el.symbol };
+                                    if (cur.endsWith("+") || cur.endsWith("➔") || cur.endsWith("->")) {
+                                      return { ...prev, target_reaction: `${cur} ${el.symbol}` };
+                                    }
+                                    return { ...prev, target_reaction: `${cur} + ${el.symbol}` };
+                                  });
+                                  triggerToast(`"${el.name} (${el.symbol}) - ${el.valence}-valentli" qo'shildi!`);
+                                }}
+                                title={`${el.name} (${el.symbol})\nAtom raqami: ${el.number}\nMassasi: ${el.mass}\nValentligi: ${el.valence}\n${el.desc}`}
+                                className={`p-1.5 rounded-xl border text-center transition-all hover:scale-105 hover:ring-2 hover:ring-amber-500/50 flex flex-col justify-between items-center ${catStyle.bg} ${catStyle.border} ${catStyle.text}`}
+                              >
+                                <div className="w-full flex items-center justify-between text-[8px] opacity-75 font-mono px-0.5">
+                                  <span>#{el.number}</span>
+                                  <span>v:{el.valence}</span>
+                                </div>
+                                <div className="font-mono font-black text-sm my-0.5 leading-none">
+                                  {el.symbol}
+                                </div>
+                                <div className="text-[9px] font-semibold truncate max-w-full leading-tight">
+                                  {el.name}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-2.5 pt-1">
+                    <div>
+                      <label className="font-bold text-[11px] text-[var(--text-muted)] block mb-1">
+                        Talab qilinadigan Ekvivalent Nisbati:
+                      </label>
+                      <select
+                        value={generateSimForm.required_equivalent_ratio}
+                        onChange={(e) =>
+                          setGenerateSimForm({
+                            ...generateSimForm,
+                            required_equivalent_ratio: e.target.value,
+                          })
+                        }
+                        className="lux-input !py-2 !px-2.5 w-full text-xs font-semibold"
+                      >
+                        <option value="1:1 ekvivalent">1:1 ekvivalent (Stexiometrik tenglik)</option>
+                        <option value="1:2 ekvivalent">1:2 ekvivalent (Asos/Kislota 2 karra)</option>
+                        <option value="2:1 ekvivalent">2:1 ekvivalent (Kislota/Asos 2 karra)</option>
+                        <option value="0.5 - 2.0 mol Ekvivalent">0.5 - 2.0 mol Ekvivalent doirasi</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <div className="text-[11px] text-[var(--text-muted)] bg-[var(--bg-void)] p-2 rounded-xl border border-[var(--border-glass)]">
+                        <span className="font-bold text-[var(--gold)]">💡 Eslatma:</span> Yuqoridagi elementlarni bosganingizda, ular avtomatik formulaga ekvivalent va valentlik asosida birikadi.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-1 border-t border-amber-500/20">
+                    <label className="flex items-center gap-2 cursor-pointer text-[11px] text-[var(--text-primary)] font-semibold">
+                      <input
+                        type="checkbox"
+                        checked={generateSimForm.enable_explosion_hazard}
+                        onChange={(e) =>
+                          setGenerateSimForm({
+                            ...generateSimForm,
+                            enable_explosion_hazard: e.target.checked,
+                          })
+                        }
+                        className="rounded border-amber-500/40 text-amber-500 focus:ring-amber-500"
+                      />
+                      <span>💥 Xato yoki xavfli modda qo'shilganda (masalan, Simob + Kislorod) ekranda Portlash va Ovozli effect bo'lsin</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer text-[11px] text-[var(--text-primary)] font-semibold">
+                      <input
+                        type="checkbox"
+                        checked={generateSimForm.ask_quantity_and_equivalent}
+                        onChange={(e) =>
+                          setGenerateSimForm({
+                            ...generateSimForm,
+                            ask_quantity_and_equivalent: e.target.checked,
+                          })
+                        }
+                        className="rounded border-amber-500/40 text-amber-500 focus:ring-amber-500"
+                      />
+                      <span>⚖️ O'quvchidan har bir modda uchun aniq Miqdor (mol) va Ekvivalent so'ralsin</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Parametrlar: Ishtirokchilar, Vaqt, Ball */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-bold text-[var(--text-muted)] block mb-1">
+                    O'quvchilar soni:
+                  </label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="10"
+                    value={generateSimForm.max_participants}
+                    onChange={(e) => setGenerateSimForm({ ...generateSimForm, max_participants: e.target.value })}
+                    className="lux-input !py-2 !px-3 w-full text-xs font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-[var(--text-muted)] block mb-1">
+                    Vaqt (daqiqa):
+                  </label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="60"
+                    value={generateSimForm.expected_duration_minutes}
+                    onChange={(e) => setGenerateSimForm({ ...generateSimForm, expected_duration_minutes: e.target.value })}
+                    className="lux-input !py-2 !px-3 w-full text-xs font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-[var(--text-muted)] block mb-1">
+                    O'tish bali (%):
+                  </label>
+                  <input
+                    type="number"
+                    min="50"
+                    max="100"
+                    value={generateSimForm.passing_score}
+                    onChange={(e) => setGenerateSimForm({ ...generateSimForm, passing_score: e.target.value })}
+                    className="lux-input !py-2 !px-3 w-full text-xs font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* 4. O'tilgan Dars Materialining Elektron Varianti / Matni */}
+              <div>
+                <label className="font-bold text-[var(--text-muted)] block mb-1 flex items-center justify-between">
+                  <span>Darslikning Elektron Matni / Konspekti: *</span>
+                  <span className="text-[10px] text-[var(--gold)]">AI ushbu matndan hikoya va o'yin yaratadi</span>
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Masalan: 'Ushbu darsda kislota va asoslarning neytrallanish reaksiyasi, lakmus indikatori rangi o'zgarishi va vodorod ajralishi o'rganildi...'"
+                  value={generateSimForm.lesson_material_text}
+                  onChange={(e) => setGenerateSimForm({ ...generateSimForm, lesson_material_text: e.target.value })}
+                  className="lux-input !py-2.5 !px-3.5 w-full text-xs leading-relaxed resize-none"
+                />
+              </div>
+
+              {/* 5. Maxsus Ko'rsatmalar */}
+              <div>
+                <label className="font-bold text-[var(--text-muted)] block mb-1">
+                  AI uchun Maxsus Ko'rsatmalar (ixtiyoriy):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Masalan: Talabalarga xavfli moddalarni aralashtirishda ehtiyotkorlik talab etilsin"
+                  value={generateSimForm.custom_instructions}
+                  onChange={(e) => setGenerateSimForm({ ...generateSimForm, custom_instructions: e.target.value })}
+                  className="lux-input !py-2 !px-3 w-full text-xs"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-3 border-t border-[var(--border-glass)]">
+                <button
+                  type="button"
+                  onClick={() => setShowGenerateSimModal(false)}
+                  className="flex-1 py-3 rounded-xl border border-[var(--border-glass)] text-xs font-bold text-[var(--text-muted)] hover:bg-[var(--bg-void)]"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  disabled={generatingSim}
+                  className="flex-2 py-3 px-6 rounded-xl bg-gradient-to-r from-amber-600 via-[#967b4f] to-amber-700 hover:brightness-110 text-white text-xs font-black shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+                >
+                  {generatingSim ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>AI Ssenariy & Xonani Yaratmoqda...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>🚀 AI Simulyatorni Generatsiya Qilish</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Mendeleyev Davriy Jadvali Modal (Ustoz uchun ko'rish va element tanlash) */}
+      <PeriodicTableModal
+        isOpen={showPeriodicTable}
+        onClose={() => setShowPeriodicTable(false)}
+        onSelectElement={(el) => {
+          setGenerateSimForm((prev) => ({
+            ...prev,
+            target_reaction: prev.target_reaction
+              ? `${prev.target_reaction} + ${el.symbol}`
+              : el.symbol,
+          }));
+          triggerToast(`"${el.uz_name} (${el.symbol}) - ${el.valence}-valentli" reaksiya formulasiga kiritildi!`);
+        }}
+      />
+
+      {/* ===================== MODAL 6: INVITE LINK POPUP (DARHOL TAKLIF LINKI) ===================== */}
+      {createdInviteModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in zoom-in-95">
+          <div className="lux-card !p-6 sm:!p-8 !bg-[var(--bg-panel)] w-full max-w-lg rounded-3xl border-2 border-[var(--gold)] shadow-2xl relative text-center space-y-5">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-500 via-[#967b4f] to-emerald-500 mx-auto flex items-center justify-center text-white shadow-xl shadow-amber-500/20 animate-bounce">
+              <Sparkles className="w-8 h-8" />
+            </div>
+
+            <div>
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-800 border border-emerald-500/30">
+                Xona Tayyor • #{createdInviteModalData.room?.room_number || 1}
+              </span>
+              <h3 className="font-serif font-black text-xl sm:text-2xl text-[var(--text-primary)] mt-2">
+                Simulyator Xonasi Yaratildi!
+              </h3>
+              <p className="text-xs text-[var(--text-muted)] mt-1 max-w-md mx-auto">
+                {createdInviteModalData.case?.title || "Interaktiv o'yin sahnasi"}
+              </p>
+            </div>
+
+            {/* Invite URL Box */}
+            <div className="p-4 rounded-2xl bg-[var(--bg-void)] border border-[var(--gold)]/40 text-left space-y-2">
+              <label className="text-[11px] font-bold text-[var(--text-primary)] flex items-center justify-between">
+                <span>🔗 O'quvchilar uchun Taklif Havolasi (Invite Link):</span>
+                <span className="text-[10px] text-emerald-600 font-extrabold">To'g'ridan-to'g'ri kirish</span>
+              </label>
+              
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  type="text"
+                  value={createdInviteModalData.inviteUrl}
+                  className="bg-white/80 dark:bg-black/40 border border-[var(--border-glass)] rounded-xl px-3 py-2 text-xs font-mono w-full text-[var(--text-primary)] select-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(createdInviteModalData.inviteUrl);
+                    setCopiedInvite(true);
+                    setTimeout(() => setCopiedInvite(false), 3000);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-md ${
+                    copiedInvite
+                      ? "bg-emerald-600 text-white"
+                      : "bg-[var(--gold)] hover:bg-[#806740] text-white"
+                  }`}
+                >
+                  {copiedInvite ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Nusxalandi!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Nusxalash</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <p className="text-[10px] text-[var(--text-muted)] italic">
+                ℹ️ Ushbu havolani barcha o'quvchilarga yuboring. O'quvchilar havola orqali bosh sahifani qidirmasdan, to'g'ridan-to'g'ri o'yin xonasiga ulanadilar.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setCreatedInviteModalData(null)}
+                className="flex-1 py-3 rounded-xl border border-[var(--border-glass)] text-xs font-bold text-[var(--text-muted)] hover:bg-[var(--bg-void)]"
+              >
+                Dashboardda Qolish
+              </button>
+              
+              <Link
+                to={createdInviteModalData.inviteUrl.replace(window.location.origin, "")}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:brightness-110 text-white text-xs font-black shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all"
+              >
+                <Play className="w-4 h-4 fill-white" />
+                <span>Sahnaga Kirish</span>
+              </Link>
+            </div>
           </div>
         </div>
       )}

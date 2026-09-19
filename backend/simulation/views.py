@@ -1,10 +1,33 @@
+import uuid
 from rest_framework import generics, views, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
-from .models import SimulationCase, SimulationSession
-from .serializers import SimulationCaseSerializer, StartSimulationSerializer, TurnInputSerializer, SimulationSessionSerializer
+from django.shortcuts import get_object_or_404
+from curriculum.models import Course, Lesson
+
+from .models import (
+    SimulationCase,
+    SimulationSession,
+    SimulationRoom,
+    RoomParticipant,
+    RoomChatMessage,
+)
+from .serializers import (
+    SimulationCaseSerializer,
+    StartSimulationSerializer,
+    TurnInputSerializer,
+    SimulationSessionSerializer,
+    SimulationRoomSerializer,
+    RoomParticipantSerializer,
+    RoomChatMessageSerializer,
+    GenerateCaseSerializer,
+    JoinRoomSerializer,
+    RoomTurnInputSerializer,
+)
 from .services import SimulationEngineService
+from .ai_generator import AISimulatorService
+
 
 def get_effective_user(request):
     if request.user and request.user.is_authenticated:
@@ -20,17 +43,222 @@ def get_effective_user(request):
     )
     return demo_user
 
+
 class SimulationCaseListView(generics.ListAPIView):
-    queryset = SimulationCase.objects.filter(is_published=True, is_active=True).select_related('course__domain')
+    queryset = SimulationCase.objects.filter(is_published=True, is_active=True).select_related('course__domain', 'lesson')
     serializer_class = SimulationCaseSerializer
     permission_classes = [AllowAny]
 
+
 class SimulationCaseDetailView(generics.RetrieveAPIView):
-    queryset = SimulationCase.objects.filter(is_published=True, is_active=True).select_related('course__domain')
+    queryset = SimulationCase.objects.filter(is_published=True, is_active=True).select_related('course__domain', 'lesson')
     serializer_class = SimulationCaseSerializer
     lookup_field = 'slug'
     permission_classes = [AllowAny]
 
+
+class GenerateSimulationCaseView(views.APIView):
+    """
+    1. O'qituvchi kurs va darsni belgilab, simulyator xonasini AI orqali yaratadi.
+    - room_style (Sud zali, Kimyo laboratoriyasi, Tibbiyot, Kiber-xavfsizlik, Erkin)
+    - expected_duration_minutes
+    - passing_score / max ball
+    - max_participants (xona sig'imi)
+    - lesson_material_text (elektron darslik matni)
+    AI bular asosida storyline, rollar va ilmiy reaksiyalar qoidasini yaratadi.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = GenerateCaseSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        user = get_effective_user(request)
+        course = get_object_or_404(Course, id=data['course_id'])
+        lesson = None
+        if data.get('lesson_id'):
+            lesson = Lesson.objects.filter(id=data['lesson_id']).first()
+
+        try:
+            case, room = AISimulatorService.generate_case_and_room(
+                course=course,
+                lesson=lesson,
+                teacher=user,
+                room_style=data.get('room_style', 'CUSTOM'),
+                expected_duration_minutes=data.get('expected_duration_minutes', 15),
+                max_participants=data.get('max_participants', 4),
+                passing_score=data.get('passing_score', 70),
+                lesson_material_text=data.get('lesson_material_text', ''),
+                custom_instructions=data.get('custom_instructions', '')
+            )
+            invite_path = f"/simulation?roomId={room.id}&caseId={case.id}"
+            return Response({
+                'success': True,
+                'message': 'AI simulyator xonasi muvaffaqiyatli yaratildi!',
+                'data': {
+                    'case': SimulationCaseSerializer(case).data,
+                    'room': SimulationRoomSerializer(room).data,
+                    'invite_url': invite_path,
+                }
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': {'message': f"Simulyator generatsiya qilishda xatolik: {str(e)}"}
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SimulationCaseRoomsView(views.APIView):
+    """Bitta simulyatsiya keysiga tegishli barcha xonalar ro'yxatini qaytaradi"""
+    permission_classes = [AllowAny]
+
+    def get(self, request, case_id, *args, **kwargs):
+        case = get_object_or_404(SimulationCase, id=case_id)
+        rooms = case.rooms.all().prefetch_related('participants__user')
+        return Response({
+            'success': True,
+            'data': {
+                'case': SimulationCaseSerializer(case).data,
+                'rooms': SimulationRoomSerializer(rooms, many=True).data,
+            }
+        })
+
+
+class JoinRoomView(views.APIView):
+    """
+    O'quvchi xonaga kiradi.
+    Agar 1-xona to'lgan bo'lsa, AI dinamik tarzda yangi xona (Multi-room scaling) ochadi.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = JoinRoomSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        user = get_effective_user(request)
+        room_id = data.get('room_id')
+        case_id = data.get('case_id')
+
+        if room_id and not case_id:
+            target_r = get_object_or_404(SimulationRoom, id=room_id)
+            case_id = str(target_r.case_id)
+
+        if not case_id:
+            return Response({'success': False, 'error': {'message': 'case_id yoki room_id kiritilishi shart.'}}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            room, participant, scaled = AISimulatorService.join_or_scale_room(
+                case_id=str(case_id),
+                user=user,
+                preferred_role_id=data.get('preferred_role_id')
+            )
+            # Avtomatik ravishda bo'sh qolgan o'rinlarni AI botlar bilan to'ldirish
+            AISimulatorService.populate_ai_roles_if_needed(room)
+
+            invite_path = f"/simulation?roomId={room.id}&caseId={room.case_id}"
+            return Response({
+                'success': True,
+                'message': 'Simulyatsiya xonasiga muvaffaqiyatli qo\'shildingiz.',
+                'data': {
+                    'room_id': str(room.id),
+                    'room_number': room.room_number,
+                    'status': room.status,
+                    'scaled_new_room': scaled,
+                    'invite_url': invite_path,
+                    'participant': RoomParticipantSerializer(participant).data,
+                    'room': SimulationRoomSerializer(room).data,
+                }
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': {'message': str(e)}
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class StartRoomView(views.APIView):
+    """
+    Simulyatsiyani boshlash.
+    2. Agar o'quvchilar soni yetishmasa, AI bo'sh qolgan barcha rollarni o'z zimmasiga oladi (AI NPC botlar).
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, room_id, *args, **kwargs):
+        room = get_object_or_404(SimulationRoom, id=room_id)
+        created_bots = AISimulatorService.populate_ai_roles_if_needed(room)
+        return Response({
+            'success': True,
+            'message': f"Simulyatsiya boshlandi! {len(created_bots)} ta rol AI botlar tomonidan to'ldirildi.",
+            'data': {
+                'room': SimulationRoomSerializer(room).data,
+                'ai_bots_count': len(created_bots)
+            }
+        })
+
+
+class RoomDetailView(views.APIView):
+    """Xona holati, ishtirokchilar va barcha chat xabarlarini qaytaradi"""
+    permission_classes = [AllowAny]
+
+    def get(self, request, room_id, *args, **kwargs):
+        room = get_object_or_404(SimulationRoom.objects.select_related('case__course__domain'), id=room_id)
+        # Agar xonada AI botlar hali bo'lmasa, bo'sh o'rinlarga AI ishtirokchilarni joylashtirish
+        if room.participants.filter(is_ai=True).count() == 0:
+            AISimulatorService.populate_ai_roles_if_needed(room)
+
+        chat_messages = room.chat_messages.all().order_by('created_at')
+        user = get_effective_user(request)
+        my_participant = room.participants.filter(user=user, is_active=True).first()
+
+        return Response({
+            'success': True,
+            'data': {
+                'room': SimulationRoomSerializer(room).data,
+                'chat_messages': RoomChatMessageSerializer(chat_messages, many=True).data,
+                'my_role': RoomParticipantSerializer(my_participant).data if my_participant else None,
+                'case': SimulationCaseSerializer(room.case).data,
+            }
+        })
+
+
+class RoomTurnView(views.APIView):
+    """
+    Xonada navbat/harakat yuborish:
+    3. AI kimyoviy reaksiya yoki qonuniy mantiqni avtomatik hisoblaydi (formula, effekt, xavf, ball).
+    Bo'sh rollardagi AI NPC botlar talaba gapiga o'zbek tilida mos javob beradi.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, room_id, *args, **kwargs):
+        serializer = RoomTurnInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        room = get_object_or_404(SimulationRoom, id=room_id)
+        user = get_effective_user(request)
+
+        participant = room.participants.filter(user=user, is_active=True).first()
+        if not participant:
+            # Join as participant if not already
+            room, participant, _ = AISimulatorService.join_or_scale_room(str(room.case_id), user)
+
+        result = AISimulatorService.process_room_turn(
+            room=room,
+            sender_participant=participant,
+            message_text=data['message'],
+            reaction_action=data.get('reaction_action', '')
+        )
+
+        return Response({
+            'success': True,
+            'message': 'Harakat qayd etildi.',
+            'data': result
+        })
+
+
+# Legacy Single-Player endpoints compatibility:
 class StartSimulationView(views.APIView):
     permission_classes = [AllowAny]
 
@@ -78,6 +306,7 @@ class StartSimulationView(views.APIView):
             }
         }, status=status.HTTP_201_CREATED)
 
+
 class SimulationTurnView(views.APIView):
     permission_classes = [AllowAny]
 
@@ -96,6 +325,7 @@ class SimulationTurnView(views.APIView):
 
         return Response({'success': True, 'data': result})
 
+
 class AbandonSessionView(views.APIView):
     permission_classes = [AllowAny]
 
@@ -106,6 +336,7 @@ class AbandonSessionView(views.APIView):
             return Response({'success': True, 'message': 'Session abandoned.'})
         except Exception as e:
             return Response({'success': False, 'error': {'message': str(e)}}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class MySessionListView(generics.ListAPIView):
     serializer_class = SimulationSessionSerializer
